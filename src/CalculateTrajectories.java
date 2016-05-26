@@ -136,17 +136,35 @@ public class CalculateTrajectories {
             RemovedNodes.add(currentNode);
 
             prevNode = currentNode;
+
+            if (nodes[prevNode].contains(prevNode+2*cols) && !RemovedNodes.contains(prevNode+2*cols)){
+                currentNode =prevNode+2*cols;
+            }else if (nodes[prevNode].contains(prevNode-1) && !RemovedNodes.contains(prevNode-1)){
+                currentNode =prevNode-1;
+            }else if (nodes[prevNode].contains(prevNode-2*cols) && !RemovedNodes.contains(prevNode-2*cols)){
+                currentNode =prevNode-2*cols;
+            }else if (nodes[prevNode].contains(prevNode+1) && !RemovedNodes.contains(prevNode+1)){
+                currentNode =prevNode+1;
+            }else {
+                return;
+            }
+
+            if (nodes[currentNode].contains(prevNode)) {nodes[currentNode].remove(prevNode);}
+            if (nodes[prevNode].contains(currentNode)) {nodes[prevNode].remove(currentNode);}
+
+            /*
             do {
                 try{
                 currentNode = (int) nodes[prevNode].last();
                 }catch (NoSuchElementException ex){
                     int a=1;
+                    //TODO
                 }
                 //if (nodes[prevNode].size()<1 || currentNode==StartingNode) {return;}
                 if (nodes[prevNode].size()<1) {return;}
                 if (nodes[currentNode].contains(prevNode)) {nodes[currentNode].remove(prevNode);}
                 if (nodes[prevNode].contains(currentNode)) {nodes[prevNode].remove(currentNode);}
-            }while(RemovedNodes.contains(currentNode));
+            }while(RemovedNodes.contains(currentNode));*/
 
             i=currentNode/(2*cols);
             j=currentNode%(2*cols);

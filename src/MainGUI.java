@@ -47,13 +47,14 @@ public class MainGUI{
     private int [][] EnviromentGrid;
 
     private JPanel SuperRadio;
-    private FinalMSTPaths MSTPaths;
     private FinalPaths mCPPResult;
 
     private Color[] ColorsNr;
     private int nr;
 
     private boolean retainData;
+
+    private JCheckBox checkBoxMSTs;
 
     MainGUI(){
         mainFrame = new JFrame("Divide Areas Algorithm For Optimal " +
@@ -62,10 +63,10 @@ public class MainGUI{
         UserInputPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         textboxRows = new JTextField(4);
         textboxRows.setDocument(new JTextFieldLimit(3));
-        textboxRows.setText("30");
+        textboxRows.setText("15");
         textboxCols = new JTextField(4);
         textboxCols.setDocument(new JTextFieldLimit(3));
-        textboxCols.setText("30");
+        textboxCols.setText("15");
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
         textBoxMaxIter.setText("70000");
@@ -300,12 +301,17 @@ public class MainGUI{
         RepaintDARP.addActionListener(new RepaintDARPclasss());
         RepaintDARP.setEnabled(true);
 
+        checkBoxMSTs = new JCheckBox("Display MSTs");
+        checkBoxMSTs.addActionListener(new CheckBoxActionClass());
+        checkBoxMSTs.setEnabled(true);
+
         SuperRadio = new JPanel();
         //SuperRadio.setLayout(new BoxLayout(SuperRadio, BoxLayout.Y_AXIS));
         SuperRadio.setPreferredSize(new Dimension(265,130));
         SuperRadio.setBackground(Color.WHITE);
         SuperRadio.add(RadioAreaButtons);
         SuperRadio.add(RepaintDARP);
+        SuperRadio.add(checkBoxMSTs);
         SuperRadio.setBorder(BorderFactory.createTitledBorder("Display Options"));
 
         InitialPanelChoice.addActionListener(new CurrentComponentToDisplay());
@@ -391,13 +397,22 @@ public class MainGUI{
         }
     }
 
+
+    private class CheckBoxActionClass implements ActionListener{
+        public void actionPerformed(ActionEvent event){
+            AbstractButton abstractButton = (AbstractButton) event.getSource();
+            mCPPResult.setDispMST(abstractButton.getModel().isSelected());
+            mCPPResult.paint();
+            mainFrame.setVisible(true);
+            mainFrame.repaint();
+        }
+    }
+
     private class RepaintDARPclasss implements ActionListener{
         public void actionPerformed(ActionEvent event){
             for (int r=0;r<nr;r++){ColorsNr[r]=generateRandomColor(null);}
             DarpResult.paint();
             mCPPResult.paint();
-            //if (CurrentCompDisp==1) {DarpResult.paint();}
-            //else if (CurrentCompDisp==2) {mCPPResult.paint();}
             mainFrame.setVisible(true);
             mainFrame.repaint();
         }
@@ -507,6 +522,7 @@ public class MainGUI{
                 mainFrame.getContentPane().add(BorderLayout.CENTER,DarpResult);
                 CurrentCompDisp=1;
                 RepaintDARP.setEnabled(true);
+                checkBoxMSTs.setEnabled(false);
             } else if (event.getActionCommand().equals("Input Environment") && CurrentCompDisp != 0) {
                 if (CurrentCompDisp==1)
                     mainFrame.remove(DarpResult);
@@ -516,6 +532,7 @@ public class MainGUI{
                 mainFrame.getContentPane().add(BorderLayout.CENTER,ColorGrid);
                 CurrentCompDisp = 0;
                 RepaintDARP.setEnabled(false);
+                checkBoxMSTs.setEnabled(false);
             } else if (event.getActionCommand().equals("Coverage Paths") && CurrentCompDisp != 2) {
                 if (CurrentCompDisp==0)
                     mainFrame.remove(ColorGrid);
@@ -525,6 +542,7 @@ public class MainGUI{
                 mainFrame.getContentPane().add(BorderLayout.CENTER,mCPPResult);
                 CurrentCompDisp = 2;
                 RepaintDARP.setEnabled(true);
+                checkBoxMSTs.setEnabled(true);
             }
             mainFrame.setVisible(true);
             mainFrame.repaint();
@@ -610,8 +628,6 @@ public class MainGUI{
 
                 DisplayFinalPanel();
 
-                MSTPaths = new FinalMSTPaths(KruskalMSTS,A,nr,problem.getRobotBinary());
-                MSTPaths.paint();
                 ArrayList<Integer[]> InitRobots = problem.getRobotsInit();
 
                 ArrayList<ArrayList<Integer[]>> AllRealPaths = new ArrayList<>();
@@ -623,7 +639,7 @@ public class MainGUI{
                     AllRealPaths.add(ct.getPathSequence());
                 }
 
-                mCPPResult = new FinalPaths(KruskalMSTS,A, nr, problem.getRobotBinary(), AllRealPaths, true);
+                mCPPResult = new FinalPaths(KruskalMSTS,A, nr, problem.getRobotBinary(), AllRealPaths, false);
 
                 mCPPResult.paint();
 
@@ -678,156 +694,6 @@ public class MainGUI{
         }
     }
 
-
-
-    private class FinalMSTPaths extends JPanel {
-
-        int Nrob;
-        ArrayList<Vector> KruskalMSTS;
-        boolean[][] robotBin;
-        Color primaryColor = Color.red;
-        Color secondaryColor = Color.blue;
-        GradientPaint gpVertical;
-        int[][] Assign;
-
-
-
-        FinalMSTPaths(ArrayList<Vector> MSTS,int[][] Assign, int Nrob, boolean[][] robotBin) {
-            this.Nrob = Nrob;
-            this.KruskalMSTS = MSTS;
-            this.Assign = Assign;
-            this.robotBin = robotBin;
-            this.gpVertical = new GradientPaint(5, 5, primaryColor, 10, 5, secondaryColor, true);
-        }
-
-        private void paint(){
-
-            removeAll();
-            int RealRows=2*rows;
-            int RealCols=2*cols;
-            setLayout(new GridLayout(RealRows+1, RealCols+1));
-            setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
-
-            int fromI,fromJ,toI,toJ;
-            int [][] BorderToPaint = new int[RealRows][RealCols];
-
-            for (int r=0;r<Nrob;r++) {
-                for (int e = 0; e < KruskalMSTS.get(r).size(); e++) {
-                    Edge curEdge = (Edge) KruskalMSTS.get(r).get(e);
-                    fromI = curEdge.from / (cols);
-                    fromJ = curEdge.from % cols;
-                    toI = curEdge.to / cols;
-                    toJ = curEdge.to % cols;
-
-                    if (fromI==toI){ //Horizontal movement --> down
-                        if (fromJ>toJ) {
-                            BorderToPaint[2*fromI][2*fromJ]+=1;
-                            BorderToPaint[2*fromI][2*toJ+1]+=1;
-                        }else{
-                            BorderToPaint[2*fromI][2*fromJ+1]+=1;
-                            BorderToPaint[2*fromI][2*toJ]+=1;
-                        }
-                    }else if (fromJ==toJ){ //Vertical movement --> right
-                        if (fromI>toI) {
-                            BorderToPaint[2*fromI][2*fromJ]+=2;
-                            BorderToPaint[2*toI+1][2*fromJ]+=2;
-                        }else{
-                            BorderToPaint[2*fromI+1][2*fromJ]+=2;
-                            BorderToPaint[2*toI][2*fromJ]+=2;
-                        }
-                    }
-
-                }
-            }
-
-
-            int SizeToPaintBorder=4;
-
-            for (int i = 0; i < RealRows+1; i++) {
-                for (int j = -1; j < RealCols; j++){
-
-                    if (i < RealRows && j >= 0) {
-                        if (robotBin[i/2][j/2] && i%2==0 && j%2==0) {
-                            RobotCell pan = new RobotCell();//(Color.WHITE,ColorsNr[Assign[i][j]]);
-                            pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
-                            pan.setBackground(Color.WHITE);
-                            if (BorderToPaint[i][j]==2) {
-                                pan.setBorder(new CompoundBorder(BorderFactory.createLineBorder(Color.BLACK),
-                                        BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, ColorsNr[Assign[i/2][j/2]])));
-                            }
-                            else if(BorderToPaint[i][j]==1){
-                                pan.setBorder(new CompoundBorder(BorderFactory.createLineBorder(Color.BLACK),
-                                        BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, ColorsNr[Assign[i/2][j/2]])));
-                            }
-                            else if (BorderToPaint[i][j]==3){
-                                pan.setBorder(new CompoundBorder(BorderFactory.createLineBorder(Color.BLACK),
-                                        BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, SizeToPaintBorder, ColorsNr[Assign[i/2][j/2]])));
-                            }
-                            else{
-                                pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                            }
-                            pan.revalidate();
-                            pan.repaint();
-                            add(pan);
-                        } else {
-                            JPanel pan = new JPanel();
-                            pan.setEnabled(true);
-                            pan.setBackground(Color.WHITE);
-                            if (Assign[i/2][j/2] == Nrob) {
-                                pan.setBackground(Color.BLACK);
-                            } else {
-                                pan.setBackground(Color.WHITE);
-                                if (BorderToPaint[i][j]==2) {
-                                    pan.setBorder(new CompoundBorder(BorderFactory.createLineBorder(Color.BLACK),
-                                            BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, ColorsNr[Assign[i/2][j/2]])));
-                                }
-                                else if(BorderToPaint[i][j]==1){
-                                    pan.setBorder(new CompoundBorder(BorderFactory.createLineBorder(Color.BLACK),
-                                            BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, ColorsNr[Assign[i/2][j/2]])));
-                                }
-                                else if (BorderToPaint[i][j]==3){
-                                    pan.setBorder(new CompoundBorder(BorderFactory.createLineBorder(Color.BLACK),
-                                            BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, SizeToPaintBorder, ColorsNr[Assign[i/2][j/2]])));
-                                }
-                                else{
-                                    pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                                }
-                            }
-                            pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
-                            //pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                            pan.revalidate();
-                            pan.repaint();
-                            add(pan);
-                        }
-                    }
-                    else if (i ==RealRows && j < 0) {
-                        JPanel pan = new JPanel();
-                        pan.revalidate();
-                        pan.repaint();
-                        add(pan);
-                    }
-                    else if (i ==RealRows){
-                        JPanel pan = new JPanel();
-                        pan.add(new ScalingLabel(Integer.toString(j)));
-                        pan.revalidate();
-                        pan.repaint();
-                        add(pan);
-                    }
-                    else if (j < 0){
-                        JPanel pan = new JPanel();
-                        pan.add(new ScalingLabel(Integer.toString(i)));
-                        pan.revalidate();
-                        pan.repaint();
-                        add(pan);
-                    }
-                }
-            }
-
-
-        }
-
-
-    }
 
     private Color generateRandomColor(Color mix) {
         Random random = new Random();
