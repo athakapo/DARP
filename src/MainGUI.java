@@ -7,7 +7,6 @@ import javax.swing.text.*;
 
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
-import java.io.IOException;
 import java.lang.Object;
 import java.util.*;
 
@@ -30,9 +29,6 @@ public class MainGUI{
     private DARPPane DarpResult;
 
     private Color CurrColor = Color.MAGENTA;
-    private int CurrentIDXAdd;
-    private int CurrentCompDisp;
-
 
     private JRadioButton ObstaclesButton;
     private JRadioButton EmptyButton;
@@ -42,19 +38,21 @@ public class MainGUI{
 
     private GridPane ColorGrid;
 
-    private int rows,cols, MaxIter;
-    private double RandomLevel, CCvariation;
+    private double RandomLevel, CCvariation,estimatedTime;
     private int [][] EnviromentGrid;
 
     private JPanel SuperRadio;
     private FinalPaths mCPPResult;
 
     private Color[] ColorsNr;
-    private int nr;
+    private int nr, EffectiveSize, maxCellsRobot, minCellsRobot,rows,cols, obs, CurrentIDXAdd, CurrentCompDisp;
 
     private boolean retainData;
 
     private JCheckBox checkBoxMSTs;
+
+
+
 
     MainGUI(){
         mainFrame = new JFrame("Divide Areas Algorithm For Optimal " +
@@ -302,16 +300,16 @@ public class MainGUI{
         RepaintDARP.setEnabled(true);
 
         checkBoxMSTs = new JCheckBox("Display MSTs");
-        checkBoxMSTs.addActionListener(new CheckBoxActionClass());
-        checkBoxMSTs.setEnabled(true);
+        //checkBoxMSTs.addActionListener(new CheckBoxActionClass());
+        //checkBoxMSTs.setEnabled(true);
 
         SuperRadio = new JPanel();
         //SuperRadio.setLayout(new BoxLayout(SuperRadio, BoxLayout.Y_AXIS));
-        SuperRadio.setPreferredSize(new Dimension(265,130));
+        SuperRadio.setPreferredSize(new Dimension(265,110));
         SuperRadio.setBackground(Color.WHITE);
         SuperRadio.add(RadioAreaButtons);
         SuperRadio.add(RepaintDARP);
-        SuperRadio.add(checkBoxMSTs);
+        //SuperRadio.add(checkBoxMSTs);
         SuperRadio.setBorder(BorderFactory.createTitledBorder("Display Options"));
 
         InitialPanelChoice.addActionListener(new CurrentComponentToDisplay());
@@ -319,11 +317,25 @@ public class MainGUI{
         PathsChoise.addActionListener(new CurrentComponentToDisplay());
 
 
+        JLabel statsLabel = new JLabel("Statistics");
+        statsLabel.setFont(new Font("serif", Font.BOLD, 19));
+        JPanel superStats = new JPanel();
+        superStats.setBackground(Color.WHITE);
+        superStats.setLayout(new BoxLayout(superStats, BoxLayout.Y_AXIS));
+        superStats.add(new JLabel("Total number of cells to be covered: "+EffectiveSize));
+        superStats.add(new JLabel("Robots: "+nr));
+        superStats.add(new JLabel(String.format("Obstacles: %d (%.2f%% of terrain)", 4*obs, 100.0*(double)obs/((double)rows*(double)cols))));
+        superStats.add(new JSeparator());
+        superStats.add(new JLabel("Maximum path length: "+maxCellsRobot+" cells"));
+        superStats.add(new JLabel("Minimum path length: "+minCellsRobot+" cells"));
+        superStats.add(new JLabel(String.format("Time required to compute paths: %.4f (sec)",estimatedTime)));
 
         UserInputPanel.add(ReturnButton);
         UserInputPanel.add(SoftReturnButton);
         UserInputPanel.add(Title);
         UserInputPanel.add(SuperRadio);
+        UserInputPanel.add(statsLabel);
+        UserInputPanel.add(superStats);
 
     }
 
@@ -590,7 +602,7 @@ public class MainGUI{
                 return;
             }
 
-            MaxIter = Integer.parseInt(textBoxMaxIter.getText());
+            int MaxIter = Integer.parseInt(textBoxMaxIter.getText());
             CCvariation = Double.parseDouble(textBoxCCvariation.getText());
             RandomLevel = Double.parseDouble(textBoxRandomLevel.getText());
 
@@ -606,7 +618,8 @@ public class MainGUI{
             //appendToPane("Interface is now locked\n\n", Color.WHITE);
 
             nr = problem.getNr();
-            appendToPane("Framework with "+ nr +" robots and "+ problem.getNumOB()+" obstacles has " +
+            obs = problem.getNumOB();
+            appendToPane("Framework with "+ nr +" robots and "+ obs+" obstacles has " +
                     "been received\n\n", Color.WHITE);
 
             appendToPane("Starting DARP algorithm...\n\n", Color.WHITE);
@@ -625,6 +638,11 @@ public class MainGUI{
                 DarpResult.paint();
                 enableComponents(UserInputPanel,true);
                 ArrayList<Vector> KruskalMSTS = calculateMSTs(problem.getBinrayRobotRegions(), nr);
+                EffectiveSize = problem.getEffectiveSize();
+                maxCellsRobot =problem.getMaxCellsAss();
+                minCellsRobot = problem.getMinCellsAss();
+                estimatedTime = problem.getElapsedTime();
+
 
                 DisplayFinalPanel();
 
@@ -640,7 +658,6 @@ public class MainGUI{
                 }
 
                 mCPPResult = new FinalPaths(KruskalMSTS,A, nr, problem.getRobotBinary(), AllRealPaths, false);
-
                 mCPPResult.paint();
 
                 mainFrame.remove(ColorGrid);
@@ -659,11 +676,11 @@ public class MainGUI{
 
         private boolean[][] CalcRealBinaryReg(boolean[][] BinrayRobotRegion){
             boolean[][] RealBinrayRobotRegion = new boolean[2*rows][2*cols];
-                for (int i=0;i<2*rows;i++){
-                    for (int j=0;j<2*cols;j++){
-                        RealBinrayRobotRegion[i][j] = BinrayRobotRegion[i/2][j/2];
-                    }
+            for (int i=0;i<2*rows;i++){
+                for (int j=0;j<2*cols;j++){
+                    RealBinrayRobotRegion[i][j] = BinrayRobotRegion[i/2][j/2];
                 }
+            }
             return RealBinrayRobotRegion;
         }
 
@@ -766,7 +783,7 @@ public class MainGUI{
                         indxadd2 = 1;
                     }
 
-                    if (connection[0] == connection[2]){ //Horizontal connection (Line types: 1,2)
+                    if (connection[0] == connection[2]){ //Horizontal connection (Line types: 2,3)
                         if (connection[1]>connection[3]){
                             TypesOfLines[connection[0]][connection[1]][indxadd1]=2;
                             TypesOfLines[connection[2]][connection[3]][indxadd2]=3;
@@ -774,7 +791,7 @@ public class MainGUI{
                             TypesOfLines[connection[0]][connection[1]][indxadd1]=3;
                             TypesOfLines[connection[2]][connection[3]][indxadd2]=2;
                         }
-                    }else{ //Vertical connection (Line types: 0,3)
+                    }else{ //Vertical connection (Line types: 1,4)
                         if (connection[0]>connection[2]){
                             TypesOfLines[connection[0]][connection[1]][indxadd1] =1;
                             TypesOfLines[connection[2]][connection[3]][indxadd2]=4;
@@ -830,6 +847,7 @@ public class MainGUI{
                             pan.setBackground(Color.WHITE);
                             if (dispMST) {paintBorders(pan, BorderToPaint[i][j], ColorsNr[Assign[i/2][j/2]]);}
                             else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
+
                             pan.revalidate();
                             pan.repaint();
                             add(pan);
@@ -844,8 +862,9 @@ public class MainGUI{
                                 if (dispMST) {paintBorders(pan, BorderToPaint[i][j], ColorsNr[Assign[i/2][j/2]]);}
                                 else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
 
-                                //pan.add(Box.createHorizontalStrut(10));
-                                pan.add(new DrawADashedLine(ColorsNr[Assign[i/2][j/2]],TypesOfLines[i][j]));
+                                //pan.add(new DrawADashedLine(ColorsNr[Assign[i/2][j/2]],TypesOfLines[i][j]));
+                                paintBordersForPaths(pan,TypesOfLines[i][j], ColorsNr[Assign[i/2][j/2]]);
+
                             }
                             //pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
                             pan.revalidate();
@@ -877,6 +896,42 @@ public class MainGUI{
             }
         }
 
+
+        private void paintBordersForPaths(JPanel pan,int[] LinesToAdd, Color c){
+            ArrayList<JPanel> subJPanelsList = new ArrayList<>();
+
+            pan.setLayout(new GridLayout(2, 2));
+
+            for (int i=0;i<4;i++){
+                subJPanelsList.add(new JPanel());
+                subJPanelsList.get(i).setBackground(Color.WHITE);
+                //subJPanelsList.get(i).setBorder(BorderFactory.createDashedBorder(c));
+                subJPanelsList.get(i).setBorder(BorderFactory.createLineBorder(Color.WHITE));
+            }
+
+
+
+            switch (LinesToAdd[0]) {
+                case 1: subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, c)); break; //up
+                case 2:  subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, c));break; //left
+                case 3:  subJPanelsList.get(3).setBorder(BorderFactory.createMatteBorder(SizeToPaintBorder, 0, 0, 0, c)); break; //right
+                case 4:  subJPanelsList.get(3).setBorder(BorderFactory.createMatteBorder(0, SizeToPaintBorder, 0, 0, c));break; //down
+            }
+
+            switch (LinesToAdd[1]) {
+                case 1: subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, SizeToPaintBorder, 0, 0, c)); break; //up
+                case 2:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(SizeToPaintBorder, 0, 0, 0, c));break; //left
+                case 3:  subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, c)); break; //right
+                case 4:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, c));break; //down
+            }
+
+
+
+
+
+            for (int i=0;i<4;i++){pan.add(subJPanelsList.get(i));}
+
+        }
 
         private void paintBorders(JPanel pan, int borderV, Color c){
             if (borderV==2) {
@@ -1082,10 +1137,10 @@ public class MainGUI{
             //g2.setStroke(dashed);
             g.setColor(robotColor);
             switch (dir[0]) {
-                case 1: g.drawLine(getWidth()/2, 0, getWidth()/2, getHeight()/2); break;
-                case 2: g.drawLine(0, getHeight()/2, getWidth()/2, getHeight()/2); break;
-                case 3: g.drawLine(getWidth(), getHeight()/2, getWidth()/2, getHeight()/2); break;
-                case 4: g.drawLine(getWidth()/2, getHeight(), getWidth()/2, getHeight()/2); break;
+                case 1: g.drawLine(getWidth()/2, 0, getWidth()/2, getHeight()/2); break; //up
+                case 2: g.drawLine(0, getHeight()/2, getWidth()/2, getHeight()/2); break; //left
+                case 3: g.drawLine(getWidth(), getHeight()/2, getWidth()/2, getHeight()/2); break; //right
+                case 4: g.drawLine(getWidth()/2, getHeight(), getWidth()/2, getHeight()/2); break; //down
             }
             switch (dir[1]) {
                 case 1: g.drawLine(getWidth()/2, 0, getWidth()/2, getHeight()/2); break;

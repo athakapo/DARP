@@ -150,7 +150,6 @@ public class CalculateTrajectories {
         }
         if (!found) {return;}
 
-
         do {
             RemovedNodes.add(currentNode);
 
@@ -177,8 +176,8 @@ public class CalculateTrajectories {
             previ=prevNode/(2*cols);
             prevj=prevNode%(2*cols);
             PathSequence.add(new Integer[]{previ,prevj,i,j});
-
         }while (true);
+
     }
 
     public ArrayList<Integer[]> getPathSequence() {return PathSequence;}

@@ -20,6 +20,8 @@ public class DARP {
     private boolean[] ConnectedRobotRegions;
     private boolean success;
     private ArrayList<boolean[][]> BinrayRobotRegions;
+    private int maxCellsAss,minCellsAss;
+    private double elapsedTime;
 
 
     public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel){
@@ -41,6 +43,8 @@ public class DARP {
 
 
     public void constructAssignmentM(){
+
+        long startTime = System.nanoTime();
 
         //Initializations
         success = true;
@@ -90,6 +94,8 @@ public class DARP {
 
         double [][] criterionMatrix = new double[rows][cols];
         MetricMatrix = AllDistances;
+
+
         //Main optimization loop
         int iter=0;
         while (iter<=maxIter){
@@ -153,6 +159,7 @@ public class DARP {
             iter++;
         }
 
+        elapsedTime = (double)(System.nanoTime() - startTime)/Math.pow(10,9);
         if (iter>=maxIter) {success=false;}
         else {
             calculateRobotBinaryArrays();
@@ -216,8 +223,8 @@ public class DARP {
 
 
     private boolean isThisAGoalState(int thres){
-        int maxCellsAss=0;
-        int minCellsAss = Integer.MAX_VALUE;
+        maxCellsAss=0;
+        minCellsAss = Integer.MAX_VALUE;
 
 
         for (int r=0;r<nr;r++){
@@ -227,6 +234,8 @@ public class DARP {
             if (!ConnectedRobotRegions[r]) {return false;}
 
         }
+
+
 
         return (maxCellsAss-minCellsAss)<=thres;
 
@@ -401,6 +410,10 @@ public class DARP {
     public boolean[][] getRobotBinary() {return robotBinary;}
     public ArrayList<boolean[][]> getBinrayRobotRegions(){return BinrayRobotRegions;}
     public ArrayList<Integer[]> getRobotsInit(){return RobotsInit;}
+    public int getEffectiveSize() {return 4*(rows*cols-ob);}
+    public int getMaxCellsAss() {return 4*maxCellsAss;}
+    public int getMinCellsAss() {return 4*minCellsAss;}
+    public double getElapsedTime() {return elapsedTime;}
 
 
 
