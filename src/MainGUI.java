@@ -66,7 +66,7 @@ public class MainGUI{
         textboxCols.setText("15");
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
-        textBoxMaxIter.setText("70000");
+        textBoxMaxIter.setText("3000");
         textBoxCCvariation = new JTextField(6);
         textBoxCCvariation.setDocument(new JTextFieldLimit(6));
         textBoxCCvariation.setText("0.01");

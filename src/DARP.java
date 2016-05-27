@@ -46,8 +46,6 @@ public class DARP {
 
         long startTime = System.nanoTime();
 
-        //Initializations
-        success = true;
         int NoTiles = rows*cols;
         double fairDivision = 1.0/nr;
         int effectiveSize = NoTiles - nr - ob;
@@ -58,8 +56,6 @@ public class DARP {
         ArrayList<double[][]> AllDistances = new ArrayList<double[][]>();
         ArrayList<double[][]> MetricMatrix = new ArrayList<double[][]>();
         ArrayList<double[][]> TilesImportance = new ArrayList<double[][]>();
-
-
 
         for (int r=0;r<nr;r++) {
             AllDistances.add(new double[rows][cols]);
@@ -95,75 +91,85 @@ public class DARP {
         double [][] criterionMatrix = new double[rows][cols];
         MetricMatrix = AllDistances;
 
+        while(true){
+            //Initializations
+            success = true;
 
-        //Main optimization loop
-        int iter=0;
-        while (iter<=maxIter){
-            assign(MetricMatrix);
+            //Main optimization loop
+            int iter = 0;
+            while (iter <= maxIter) {
+                assign(MetricMatrix);
 
-            ArrayList<float[][]> ConnectedMultiplierList = new ArrayList<>();
-            double[] plainErrors = new double[nr];
-            double[] divFairError= new double[nr];
+                ArrayList<float[][]> ConnectedMultiplierList = new ArrayList<>();
+                double[] plainErrors = new double[nr];
+                double[] divFairError = new double[nr];
 
-            //Connected Areas Component
-            for (int r=0;r<nr;r++) {
-                float[][] ConnectedMultiplier = deepCopyMatrix(ONES2D);
-                ConnectedRobotRegions[r]=true;
+                //Connected Areas Component
+                for (int r = 0; r < nr; r++) {
+                    float[][] ConnectedMultiplier = deepCopyMatrix(ONES2D);
+                    ConnectedRobotRegions[r] = true;
 
-                ConnectComponent cc = new ConnectComponent();
-                int[][] Ilabel = cc.compactLabeling(BWlist.get(r), new Dimension(cols,rows),true);
-                if (cc.getMaxLabel() >1){ //At least one unconnected regions among r-robot's regions is found
-                    ConnectedRobotRegions[r]=false;
+                    ConnectComponent cc = new ConnectComponent();
+                    int[][] Ilabel = cc.compactLabeling(BWlist.get(r), new Dimension(cols, rows), true);
+                    if (cc.getMaxLabel() > 1) { //At least one unconnected regions among r-robot's regions is found
+                        ConnectedRobotRegions[r] = false;
 
-                    //Find robot's sub-region and construct Robot and Non-Robot binary regions
-                    cc.constructBinaryImages(Ilabel[RobotsInit.get(r)[0]][RobotsInit.get(r)[1]]);
+                        //Find robot's sub-region and construct Robot and Non-Robot binary regions
+                        cc.constructBinaryImages(Ilabel[RobotsInit.get(r)[0]][RobotsInit.get(r)[1]]);
 
-                    //Construct the final Connected Component Multiplier
-                    ConnectedMultiplier = CalcConnectedMultiplier(cc.NormalizedEuclideanDistanceBinary(true),
-                            cc.NormalizedEuclideanDistanceBinary(false));
+                        //Construct the final Connected Component Multiplier
+                        ConnectedMultiplier = CalcConnectedMultiplier(cc.NormalizedEuclideanDistanceBinary(true),
+                                cc.NormalizedEuclideanDistanceBinary(false));
 
+                    }
+                    ConnectedMultiplierList.add(r, ConnectedMultiplier);
+
+                    //Calculate the deviation from the the Optimal Assignment
+                    plainErrors[r] = ArrayOfElements[r] / (double) effectiveSize;
+                    divFairError[r] = fairDivision - plainErrors[r];
                 }
-                ConnectedMultiplierList.add(r,ConnectedMultiplier);
 
-                //Calculate the deviation from the the Optimal Assignment
-                plainErrors[r] = ArrayOfElements[r]/(double)effectiveSize;
-                divFairError[r] =fairDivision - plainErrors[r];
+
+                //Exit conditions
+                if (isThisAGoalState(termThr)) {
+                    break;
+                }
+
+                double TotalNegPerc = 0.0, totalNegPlainErrors = 0.0;
+                double[] correctionMult = new double[nr];
+
+                for (int r = 0; r < nr; r++) {
+                    if (divFairError[r] < 0) {
+                        TotalNegPerc += Math.abs(divFairError[r]);
+                        totalNegPlainErrors += plainErrors[r];
+                    }
+                    correctionMult[r] = 1.0;
+                }
+
+                //Restore Fairness among the different partitions
+                for (int r = 0; r < nr; r++) {
+                    if (totalNegPlainErrors != 0.0) {
+                        correctionMult[r] = 1 + Math.signum(-divFairError[r]) * (plainErrors[r] / totalNegPlainErrors) * (TotalNegPerc / 2);
+                        criterionMatrix = calculateCriterionMatrix(TilesImportance.get(r), MinimumImportance[r], MaximumImportance[r], correctionMult[r], (divFairError[r] < 0));
+                    }
+                    MetricMatrix.set(r, FinalUpdateOnMetricMatrix(criterionMatrix, generateRandomMatrix(), MetricMatrix.get(r), ConnectedMultiplierList.get(r)));
+                }
+
+                iter++;
             }
 
 
-
-            //Exit conditions
-            if (isThisAGoalState(termThr)) {break;}
-
-            double TotalNegPerc=0.0,totalNegPlainErrors=0.0;
-            double[] correctionMult = new double[nr];
-
-            for (int r=0;r<nr;r++) {
-                if (divFairError[r]<0) {
-                    TotalNegPerc+= Math.abs(divFairError[r]);
-                    totalNegPlainErrors+= plainErrors[r];
-                }
-                correctionMult[r]=1.0;
+            if (iter>=maxIter) {
+                success=false;
+                termThr++;
             }
-
-
-            //Restore Fairness among the different partitions
-            for (int r=0;r<nr;r++) {
-                if (totalNegPlainErrors!=0.0){
-                    correctionMult[r]= 1+Math.signum(-divFairError[r])*(plainErrors[r]/totalNegPlainErrors)*(TotalNegPerc/2);
-                    criterionMatrix = calculateCriterionMatrix(TilesImportance.get(r), MinimumImportance[r], MaximumImportance[r], correctionMult[r], (divFairError[r]<0));
-                }
-                MetricMatrix.set(r, FinalUpdateOnMetricMatrix(criterionMatrix, generateRandomMatrix(), MetricMatrix.get(r), ConnectedMultiplierList.get(r)));
+            else {
+                calculateRobotBinaryArrays();
+                break;
             }
-
-            iter++;
         }
 
         elapsedTime = (double)(System.nanoTime() - startTime)/Math.pow(10,9);
-        if (iter>=maxIter) {success=false;}
-        else {
-            calculateRobotBinaryArrays();
-        }
 
     }
 
@@ -234,7 +240,6 @@ public class DARP {
             if (!ConnectedRobotRegions[r]) {return false;}
 
         }
-
 
 
         return (maxCellsAss-minCellsAss)<=thres;
