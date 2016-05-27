@@ -131,40 +131,46 @@ public class CalculateTrajectories {
 
         int currentNode =StartingNode;
         HashSet<Integer> RemovedNodes = new HashSet<>();
-        int prevNode,i,j,previ,prevj;
+        int prevNode,i,j,previ,prevj,offset;
+
+        ArrayList<Integer> movement = new ArrayList<>();
+        movement.add(2*cols);
+        movement.add(-1);
+        movement.add(-2*cols);
+        movement.add(1);
+
+        boolean found=false;
+        prevNode = 0;
+        for (int idx=0;idx<4;idx++) {
+            if (nodes[currentNode].contains(currentNode + movement.get(idx))){
+                prevNode = currentNode + movement.get(idx);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {return;}
+
+
         do {
             RemovedNodes.add(currentNode);
 
+            offset = movement.indexOf(prevNode-currentNode);
+
             prevNode = currentNode;
 
-            if (nodes[prevNode].contains(prevNode+2*cols) && !RemovedNodes.contains(prevNode+2*cols)){
-                currentNode =prevNode+2*cols;
-            }else if (nodes[prevNode].contains(prevNode-1) && !RemovedNodes.contains(prevNode-1)){
-                currentNode =prevNode-1;
-            }else if (nodes[prevNode].contains(prevNode-2*cols) && !RemovedNodes.contains(prevNode-2*cols)){
-                currentNode =prevNode-2*cols;
-            }else if (nodes[prevNode].contains(prevNode+1) && !RemovedNodes.contains(prevNode+1)){
-                currentNode =prevNode+1;
-            }else {
-                return;
+            found = false;
+            for (int idx=0;idx<4;idx++){
+                if (nodes[prevNode].contains(prevNode+movement.get((idx+offset)%4)) &&
+                        !RemovedNodes.contains(prevNode+movement.get((idx+offset)%4))) {
+                    currentNode = prevNode + movement.get((idx+offset)%4);
+                    found = true;
+                    break;
+                }
             }
+            if (!found) {return;}
 
             if (nodes[currentNode].contains(prevNode)) {nodes[currentNode].remove(prevNode);}
             if (nodes[prevNode].contains(currentNode)) {nodes[prevNode].remove(currentNode);}
-
-            /*
-            do {
-                try{
-                currentNode = (int) nodes[prevNode].last();
-                }catch (NoSuchElementException ex){
-                    int a=1;
-                    //TODO
-                }
-                //if (nodes[prevNode].size()<1 || currentNode==StartingNode) {return;}
-                if (nodes[prevNode].size()<1) {return;}
-                if (nodes[currentNode].contains(prevNode)) {nodes[currentNode].remove(prevNode);}
-                if (nodes[prevNode].contains(currentNode)) {nodes[prevNode].remove(currentNode);}
-            }while(RemovedNodes.contains(currentNode));*/
 
             i=currentNode/(2*cols);
             j=currentNode%(2*cols);

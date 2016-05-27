@@ -844,6 +844,7 @@ public class MainGUI{
                                 if (dispMST) {paintBorders(pan, BorderToPaint[i][j], ColorsNr[Assign[i/2][j/2]]);}
                                 else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
 
+                                //pan.add(Box.createHorizontalStrut(10));
                                 pan.add(new DrawADashedLine(ColorsNr[Assign[i/2][j/2]],TypesOfLines[i][j]));
                             }
                             //pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
