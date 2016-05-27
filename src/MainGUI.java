@@ -20,7 +20,6 @@ public class MainGUI{
 
     private JPanel UserInputPanel,ConsolePanel,RightPanel;
     private JTextField textboxRows,textboxCols,textBoxMaxIter,textBoxCCvariation,textBoxRandomLevel;
-    private JScrollPane scrollConsole;
     private JLabel Title;
     private ButtonGroup Items;
 
@@ -38,8 +37,8 @@ public class MainGUI{
 
     private GridPane ColorGrid;
 
-    private double RandomLevel, CCvariation,estimatedTime;
-    private int [][] EnviromentGrid;
+    private double estimatedTime;
+    private int [][] EnvironmentGrid;
 
     private JPanel SuperRadio;
     private FinalPaths mCPPResult;
@@ -60,10 +59,10 @@ public class MainGUI{
         UserInputPanel = new JPanel();
         UserInputPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         textboxRows = new JTextField(4);
-        textboxRows.setDocument(new JTextFieldLimit(3));
+        textboxRows.setDocument(new JTextFieldLimit(2));
         textboxRows.setText("15");
         textboxCols = new JTextField(4);
-        textboxCols.setDocument(new JTextFieldLimit(3));
+        textboxCols.setDocument(new JTextFieldLimit(2));
         textboxCols.setText("15");
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
@@ -162,7 +161,7 @@ public class MainGUI{
         consoleToPrint.setBackground(Color.black);
         consoleToPrint.setEditable(false);
 
-        scrollConsole= new JScrollPane (consoleToPrint,
+        JScrollPane scrollConsole = new JScrollPane(consoleToPrint,
                 JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
         ConsolePanel.add(scrollConsole);
@@ -174,7 +173,7 @@ public class MainGUI{
         UserInputPanel.setBackground(Color.white);
 
         if (!retainData) {
-            EnviromentGrid = new int[rows][cols];
+            EnvironmentGrid = new int[rows][cols];
             ColorGrid = new GridPane();
         }
         mainFrame.getContentPane().add(BorderLayout.CENTER,ColorGrid);
@@ -324,7 +323,7 @@ public class MainGUI{
         superStats.setLayout(new BoxLayout(superStats, BoxLayout.Y_AXIS));
         superStats.add(new JLabel("Total number of cells to be covered: "+EffectiveSize));
         superStats.add(new JLabel("Robots: "+nr));
-        superStats.add(new JLabel(String.format("Obstacles: %d (%.2f%% of terrain)", 4*obs, 100.0*(double)obs/((double)rows*(double)cols))));
+        superStats.add(new JLabel(String.format("Obstacles: %d (%.2f%% of the terrain)", 4*obs, 100.0*(double)obs/((double)rows*(double)cols))));
         superStats.add(new JSeparator());
         superStats.add(new JLabel("Maximum path length: "+maxCellsRobot+" cells"));
         superStats.add(new JLabel("Minimum path length: "+minCellsRobot+" cells"));
@@ -400,7 +399,7 @@ public class MainGUI{
 
             if (n == 0) {
                 mainFrame.remove(ColorGrid);
-                EnviromentGrid = new int[rows][cols];
+                EnvironmentGrid = new int[rows][cols];
                 ColorGrid = new GridPane();
                 mainFrame.getContentPane().add(BorderLayout.CENTER, ColorGrid);
                 mainFrame.setVisible(true);
@@ -452,7 +451,7 @@ public class MainGUI{
 
             if (n == 0) {
                 UserInputPanel.removeAll();
-                EnviromentGrid = null;
+                EnvironmentGrid = null;
                 CurrColor = Color.MAGENTA;
                 CurrentIDXAdd = -1;
                 rows = 0;
@@ -603,10 +602,10 @@ public class MainGUI{
             }
 
             int MaxIter = Integer.parseInt(textBoxMaxIter.getText());
-            CCvariation = Double.parseDouble(textBoxCCvariation.getText());
-            RandomLevel = Double.parseDouble(textBoxRandomLevel.getText());
+            double CCvariation = Double.parseDouble(textBoxCCvariation.getText());
+            double randomLevel = Double.parseDouble(textBoxRandomLevel.getText());
 
-            DARP problem = new DARP(rows, cols, EnviromentGrid, MaxIter,CCvariation,RandomLevel);
+            DARP problem = new DARP(rows, cols, EnvironmentGrid, MaxIter,CCvariation, randomLevel);
 
             if (problem.getNr()<=0) {
                 appendToPane("Please define at least one robot (blue cell)\n\n", Color.WHITE);
@@ -756,7 +755,7 @@ public class MainGUI{
             this.gpVertical = new GradientPaint(5, 5, primaryColor, 10, 5, secondaryColor, true);
         }
 
-        public void setDispMST(boolean v){dispMST=v;}
+        void setDispMST(boolean v){dispMST=v;}
 
         private void paint(){
 
@@ -783,7 +782,7 @@ public class MainGUI{
                         indxadd2 = 1;
                     }
 
-                    if (connection[0] == connection[2]){ //Horizontal connection (Line types: 2,3)
+                    if (connection[0].equals(connection[2])){ //Horizontal connection (Line types: 2,3)
                         if (connection[1]>connection[3]){
                             TypesOfLines[connection[0]][connection[1]][indxadd1]=2;
                             TypesOfLines[connection[2]][connection[3]][indxadd2]=3;
@@ -1075,7 +1074,7 @@ public class MainGUI{
                 JPanel clickedBox = (JPanel) me.getSource(); // get the reference to the box that was clicked
                 clickedBox.setBackground(CurrColor);
                 String[] iAndJ = clickedBox.getName().split("\\s+");
-                EnviromentGrid[Integer.parseInt(iAndJ[0])][Integer.parseInt(iAndJ[1])] = CurrentIDXAdd;
+                EnvironmentGrid[Integer.parseInt(iAndJ[0])][Integer.parseInt(iAndJ[1])] = CurrentIDXAdd;
             }
         }
 
@@ -1085,7 +1084,7 @@ public class MainGUI{
                     JPanel clickedBox = (JPanel) me.getSource(); // get the reference to the box that was clicked
                     clickedBox.setBackground(CurrColor);
                     String[] iAndJ = clickedBox.getName().split("\\s+");
-                    EnviromentGrid[Integer.parseInt(iAndJ[0])][Integer.parseInt(iAndJ[1])] = CurrentIDXAdd;
+                    EnvironmentGrid[Integer.parseInt(iAndJ[0])][Integer.parseInt(iAndJ[1])] = CurrentIDXAdd;
                 }
             }
         }
@@ -1120,7 +1119,7 @@ public class MainGUI{
     }
 
 
-    class DrawADashedLine extends JPanel{
+    private class DrawADashedLine extends JPanel{
         Color robotColor;
         int[] dir;
 
@@ -1155,7 +1154,7 @@ public class MainGUI{
     }
 
 
-    class MyDrawPanel extends JPanel{
+    private class MyDrawPanel extends JPanel{
 
         MyDrawPanel() {
             // set a preferred size for the custom panel.
@@ -1171,7 +1170,7 @@ public class MainGUI{
     }
 
 
-    class RobotCell extends  JPanel {
+    private class RobotCell extends  JPanel {
 
         @Override
         protected void paintComponent(Graphics g) {

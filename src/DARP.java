@@ -411,8 +411,8 @@ public class DARP {
     public ArrayList<boolean[][]> getBinrayRobotRegions(){return BinrayRobotRegions;}
     public ArrayList<Integer[]> getRobotsInit(){return RobotsInit;}
     public int getEffectiveSize() {return 4*(rows*cols-ob);}
-    public int getMaxCellsAss() {return 4*maxCellsAss;}
-    public int getMinCellsAss() {return 4*minCellsAss;}
+    public int getMaxCellsAss() {return 4*(maxCellsAss+1);}
+    public int getMinCellsAss() {return 4*(minCellsAss+1);}
     public double getElapsedTime() {return elapsedTime;}
 
 
