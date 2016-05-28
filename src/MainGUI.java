@@ -66,7 +66,7 @@ public class MainGUI{
         textboxCols.setText("15");
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
-        textBoxMaxIter.setText("3000");
+        textBoxMaxIter.setText("20000");
         textBoxCCvariation = new JTextField(6);
         textBoxCCvariation.setDocument(new JTextFieldLimit(6));
         textBoxCCvariation.setText("0.01");
@@ -327,7 +327,7 @@ public class MainGUI{
         superStats.add(new JSeparator());
         superStats.add(new JLabel("Maximum path length: "+maxCellsRobot+" cells"));
         superStats.add(new JLabel("Minimum path length: "+minCellsRobot+" cells"));
-        superStats.add(new JLabel(String.format("Time required to compute paths: %.4f (sec)",estimatedTime)));
+        superStats.add(new JLabel(String.format("Paths are calculated within: %.4f secs",estimatedTime)));
 
         UserInputPanel.add(ReturnButton);
         UserInputPanel.add(SoftReturnButton);
@@ -601,6 +601,14 @@ public class MainGUI{
                 return;
             }
 
+            int[][] BinaryGrid = makeGridBinary();
+            ConnectComponent G2G = new ConnectComponent();
+            G2G.compactLabeling(BinaryGrid,new Dimension(cols, rows), true);
+            if (G2G.getMaxLabel() > 1){
+                appendToPane("The environment gird MUST not have unreachable and/or closed shape regions\n\n", Color.WHITE);
+                return;
+            }
+
             int MaxIter = Integer.parseInt(textBoxMaxIter.getText());
             double CCvariation = Double.parseDouble(textBoxCCvariation.getText());
             double randomLevel = Double.parseDouble(textBoxRandomLevel.getText());
@@ -670,6 +678,18 @@ public class MainGUI{
                 ColorGrid.enable = true;
             }
 
+        }
+
+        private int[][] makeGridBinary(){
+            int[][] retM = new int[rows][cols];
+            for (int i=0;i<rows;i++) {
+                for (int j = 0; j <  cols; j++) {
+                    if (EnvironmentGrid[i][j]==0){
+                        retM[i][j]=1;
+                    }
+                }
+            }
+            return retM;
         }
 
 
