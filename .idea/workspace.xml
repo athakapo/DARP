@@ -9,7 +9,6 @@
     <list default="true" id="5789ec85-c01b-4054-885a-60c1a29b41aa" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/DARP.java" afterPath="$PROJECT_DIR$/src/DARP.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/MainGUI.java" afterPath="$PROJECT_DIR$/src/MainGUI.java" />
     </list>
     <ignored path="DARP.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -41,11 +40,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="MainGUI.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="MainGUI.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/MainGUI.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="374">
-              <caret line="73" column="63" selection-start-line="73" selection-start-column="63" selection-end-line="73" selection-end-column="63" />
+            <state relative-caret-position="714">
+              <caret line="93" column="5" selection-start-line="93" selection-start-column="5" selection-end-line="93" selection-end-column="5" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -53,11 +52,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DARP.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="DARP.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/DARP.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="76" column="100" selection-start-line="76" selection-start-column="100" selection-end-line="76" selection-end-column="100" />
+            <state relative-caret-position="251">
+              <caret line="53" column="25" selection-start-line="53" selection-start-column="25" selection-end-line="53" selection-end-column="25" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -78,7 +77,7 @@
       <file leaf-file-name="Kruskal.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/Kruskal.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-11">
+            <state relative-caret-position="238">
               <caret line="14" column="22" selection-start-line="14" selection-start-column="22" selection-end-line="14" selection-end-column="22" />
               <folding />
             </state>
@@ -137,8 +136,8 @@
         <option value="$PROJECT_DIR$/src/Edge.java" />
         <option value="$PROJECT_DIR$/src/CalculateTrajectories.java" />
         <option value="$PROJECT_DIR$/src/Main.java" />
-        <option value="$PROJECT_DIR$/src/DARP.java" />
         <option value="$PROJECT_DIR$/src/MainGUI.java" />
+        <option value="$PROJECT_DIR$/src/DARP.java" />
       </list>
     </option>
   </component>
@@ -199,6 +198,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -233,7 +233,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="PackagesPane" />
       <pane id="Scratches" />
     </panes>
@@ -581,7 +580,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="300" />
+      <option name="time" value="301" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -806,26 +805,26 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/Kruskal.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-11">
+        <state relative-caret-position="238">
           <caret line="14" column="22" selection-start-line="14" selection-start-column="22" selection-end-line="14" selection-end-column="22" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/DARP.java">
+    <entry file="file://$PROJECT_DIR$/src/MainGUI.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="76" column="100" selection-start-line="76" selection-start-column="100" selection-end-line="76" selection-end-column="100" />
+        <state relative-caret-position="714">
+          <caret line="93" column="5" selection-start-line="93" selection-start-column="5" selection-end-line="93" selection-end-column="5" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/MainGUI.java">
+    <entry file="file://$PROJECT_DIR$/src/DARP.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="374">
-          <caret line="73" column="63" selection-start-line="73" selection-start-column="63" selection-end-line="73" selection-end-column="63" />
+        <state relative-caret-position="251">
+          <caret line="53" column="25" selection-start-line="53" selection-start-column="25" selection-end-line="53" selection-end-column="25" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

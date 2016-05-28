@@ -12,7 +12,7 @@ public class DARP {
     private double variateWeight, randomLevel;
     private int rows,cols,nr,ob,maxIter ;
     private int[][] GridEnv;
-    private ArrayList<Integer[]> RobotsInit,Obstacles;
+    private ArrayList<Integer[]> RobotsInit;
     private ArrayList<int[][]> BWlist;
     private int[][] A;
     private boolean [][] robotBinary;
@@ -31,8 +31,7 @@ public class DARP {
         this.nr=0;
         this.ob=0;
         this.maxIter = iters;
-        this.RobotsInit = new ArrayList<Integer[]>();
-        this.Obstacles = new ArrayList<Integer[]>();
+        this.RobotsInit = new ArrayList<>();
         this.A = new int[rows][cols];
         this.robotBinary = new boolean[rows][cols];
         this.variateWeight = vWeight;
@@ -45,17 +44,17 @@ public class DARP {
     public void constructAssignmentM(){
 
         long startTime = System.nanoTime();
-
+        //Constant Initializations
         int NoTiles = rows*cols;
+
+        int termThr;
         double fairDivision = 1.0/nr;
         int effectiveSize = NoTiles - nr - ob;
-        int termThr;
         if (effectiveSize % nr !=0) {termThr=1;}
         else {termThr=0;}
 
-        ArrayList<double[][]> AllDistances = new ArrayList<double[][]>();
-        ArrayList<double[][]> MetricMatrix = new ArrayList<double[][]>();
-        ArrayList<double[][]> TilesImportance = new ArrayList<double[][]>();
+        ArrayList<double[][]> AllDistances = new ArrayList<>();
+        ArrayList<double[][]> TilesImportance = new ArrayList<>();
 
         for (int r=0;r<nr;r++) {
             AllDistances.add(new double[rows][cols]);
@@ -88,12 +87,19 @@ public class DARP {
             }
         }
 
-        double [][] criterionMatrix = new double[rows][cols];
-        MetricMatrix = AllDistances;
 
-        while(true){
+        success = false;
+
+        while(!success){
             //Initializations
+
             success = true;
+            double downThres = ((double)NoTiles-(double)termThr*(nr-1))/(double)(NoTiles*nr);
+            double upperThres = ((double)NoTiles+termThr)/(double)(NoTiles*nr);
+
+            ArrayList<double[][]> MetricMatrix = deepCopyListMatrix(AllDistances);
+
+            double [][] criterionMatrix = new double[rows][cols];
 
             //Main optimization loop
             int iter = 0;
@@ -126,7 +132,9 @@ public class DARP {
 
                     //Calculate the deviation from the the Optimal Assignment
                     plainErrors[r] = ArrayOfElements[r] / (double) effectiveSize;
-                    divFairError[r] = fairDivision - plainErrors[r];
+                    //divFairError[r] = fairDivision - plainErrors[r];
+                    if (plainErrors[r]<downThres) {divFairError[r] = downThres - plainErrors[r];}
+                    else if (plainErrors[r]>upperThres) {divFairError[r] = upperThres - plainErrors[r];}
                 }
 
 
@@ -158,19 +166,14 @@ public class DARP {
                 iter++;
             }
 
-
             if (iter>=maxIter) {
                 success=false;
                 termThr++;
             }
-            else {
-                calculateRobotBinaryArrays();
-                break;
-            }
         }
 
         elapsedTime = (double)(System.nanoTime() - startTime)/Math.pow(10,9);
-
+        calculateRobotBinaryArrays();
     }
 
 
@@ -323,6 +326,26 @@ public class DARP {
         return result;
     }
 
+    private ArrayList<double[][]> deepCopyListMatrix(ArrayList<double[][]> input){
+        if (input == null)
+            return null;
+        ArrayList<double[][]> result = new ArrayList<>();
+        for (int r = 0; r < input.size(); r++) {
+            result.add(deepCopyMatrix(input.get(r)));
+        }
+        return result;
+    }
+
+    private double[][] deepCopyMatrix(double[][] input) {
+        if (input == null)
+            return null;
+        double[][] result = new double[input.length][];
+        for (int r = 0; r < input.length; r++) {
+            result[r] = input[r].clone();
+        }
+        return result;
+    }
+
     private int[] deepCopyMatrix(int[] input) {
         if (input == null)
             return null;
@@ -359,7 +382,6 @@ public class DARP {
                     nr++;
                 }
                 else if (GridEnv[i][j]==1) {
-                    Obstacles.add(new Integer[]{i,j});
                     ob++;
                     GridEnv[i][j]=-2;
                 } else {GridEnv[i][j]=-1;}
