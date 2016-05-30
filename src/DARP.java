@@ -442,6 +442,8 @@ public class DARP{
     public int getMaxCellsAss() {return 4*(maxCellsAss+1);}
     public int getMinCellsAss() {return 4*(minCellsAss+1);}
     public double getElapsedTime() {return elapsedTime;}
+    public int getDiscr(){return discr;}
+    public int getMaxIter() {return  maxIter;}
 
 
 

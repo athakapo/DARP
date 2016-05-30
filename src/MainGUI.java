@@ -1,4 +1,5 @@
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -7,6 +8,9 @@ import javax.swing.text.*;
 
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.lang.Object;
 import java.util.*;
 
@@ -32,7 +36,7 @@ public class MainGUI{
     private JRadioButton ObstaclesButton;
     private JRadioButton EmptyButton;
     private JRadioButton RobotButton;
-    private JButton RepaintDARP;
+    private JButton RepaintDARP,AbortDARP;
     private JTextPane consoleToPrint;
 
     private GridPane ColorGrid;
@@ -49,6 +53,8 @@ public class MainGUI{
     private boolean retainData;
 
     private JCheckBox checkBoxMSTs;
+
+    private DARPHeavyTask DARPhelper;
 
 
 
@@ -221,16 +227,36 @@ public class MainGUI{
         RobotButton.addActionListener(new CurrentComponentToAdd());
 
         JPanel DARP = new JPanel();
-        DARP.setPreferredSize(new Dimension(265,156));
-        JButton startExp = new JButton("RUN!");
-        startExp.addActionListener(new StartDARP());
-        JLabel MaxDiscreLabel = new JLabel("#Maximum Cells Discrepancy: ");
+        DARP.setPreferredSize(new Dimension(265,185));
 
-        JLabel MaxIterLabel = new JLabel("#Maximum Iterations: ");
+        JLabel MaxDiscreLabel = new JLabel("#Max Cells Discrepancy: 4x");
+
+        JLabel MaxIterLabel = new JLabel("#Max Iterations per lvl: ");
         DARP.setBackground(Color.white);
 
         JLabel CCvariation = new JLabel("Connected Component: ");
         JLabel RandomLevelLabel = new JLabel("%Random Influence: ");
+
+        /*
+        JButton startExp;
+        try{
+            BufferedImage buttonIcon = ImageIO.read(new File("src/resources/run.png"));
+            startExp = new JButton(new ImageIcon(buttonIcon));
+            startExp.setBorderPainted(false);
+            startExp.setFocusPainted(false);
+            startExp.setContentAreaFilled(false);
+        }catch(IOException ex){
+            System.out.println("RUN icon cannot be found");
+            startExp = new JButton("RUN");
+        }
+        */
+        JButton startExp = new JButton("RUN");
+        startExp.addActionListener(new StartDARP());
+
+        AbortDARP = new JButton("Abort");
+        AbortDARP.addActionListener(new AbortDARPListener());
+        AbortDARP.setEnabled(false);
+
 
         DARP.add(MaxDiscreLabel);
         DARP.add(textBoxMaxDiscr);
@@ -241,6 +267,7 @@ public class MainGUI{
         DARP.add(RandomLevelLabel);
         DARP.add(textBoxRandomLevel);
         DARP.add(startExp);
+        DARP.add(AbortDARP);
         DARP.setBorder(BorderFactory.createTitledBorder("Find the coverage paths"));
 
         JButton ReturnButton = new JButton("Return");
@@ -586,6 +613,32 @@ public class MainGUI{
 
     }
 
+
+    private class AbortDARPListener implements ActionListener{
+        public void actionPerformed(ActionEvent event){
+            try {
+            Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                System.err.println("Error 01 while trying to abort DARP execution");
+                System.exit(1);
+            }
+            DARPhelper.cancel(true);
+            while (!DARPhelper.isCancelled()) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error 02 while trying to abort DARP execution");
+                    System.exit(1);
+                }
+            }
+            AbortDARP.setEnabled(false);
+            enableComponents(UserInputPanel,true);
+            ColorGrid.enable = true;
+        }
+    }
+
+
+
     private class StartDARP implements ActionListener{
         public void actionPerformed(ActionEvent event){
 
@@ -632,121 +685,136 @@ public class MainGUI{
 
             enableComponents(UserInputPanel,false);
             ColorGrid.enable =false;
+            AbortDARP.setEnabled(true);
 
             nr = problem.getNr();
             obs = problem.getNumOB();
-            appendToPane("Framework with "+ nr +" robots and "+ obs+" obstacles has " +
+            appendToPane("Framework with "+ nr +" robots and "+ 4*obs+" obstacles has " +
                     "been received\n\n", Color.WHITE);
 
             appendToPane("Starting DARP algorithm...\n\n", Color.WHITE);
-            appendToPane("Interface is now locked\n\n", Color.WHITE);
+            appendToPane("Interface locked\n\n", Color.WHITE);
 
-            DARPHeavyTask DARPhelper = new DARPHeavyTask(problem);
+            DARPhelper = new DARPHeavyTask(problem);
             DARPhelper.execute();
 
-        }
+            mainFrame.repaint();
 
-
-
-        class DARPHeavyTask extends SwingWorker<Integer,String>{
-
-            private DARP p;
-
-            DARPHeavyTask(DARP problem){
-                this.p = problem;
-            }
-
-
-            public Integer doInBackground(){
-                p.constructAssignmentM();
-                return 42;
-            }
-
-            public void done(){
-                if (p.getSuccess()){
-                    int [][] A = p.getAssignmentMatrix();
-                    appendToPane("DARP found an optimal space division\n\n", Color.WHITE);
-
-                    ColorsNr = new Color[nr];
-                    for (int r=0;r<nr;r++){ColorsNr[r]=generateRandomColor(null);}
-
-
-                    DarpResult = new DARPPane(A,nr,p.getRobotBinary());
-                    DarpResult.paint();
-                    enableComponents(UserInputPanel,true);
-                    ArrayList<Vector> KruskalMSTS = calculateMSTs(p.getBinrayRobotRegions(), nr);
-                    EffectiveSize = p.getEffectiveSize();
-                    maxCellsRobot =p.getMaxCellsAss();
-                    minCellsRobot = p.getMinCellsAss();
-                    estimatedTime = p.getElapsedTime();
-
-                    DisplayFinalPanel();
-
-                    ArrayList<Integer[]> InitRobots = p.getRobotsInit();
-
-                    ArrayList<ArrayList<Integer[]>> AllRealPaths = new ArrayList<>();
-                    for (int r=0;r<nr;r++) {
-                        CalculateTrajectories ct = new CalculateTrajectories(rows,cols, KruskalMSTS.get(r)); //Send MSTs
-                        ct.initializeGraph(CalcRealBinaryReg(p.getBinrayRobotRegions().get(r)), true); //Send [x2 x2] Binary Robot Region
-                        ct.RemoveTheAppropriateEdges();
-                        ct.CalculatePathsSequence(4*InitRobots.get(r)[0]*cols+2*InitRobots.get(r)[1]);
-                        AllRealPaths.add(ct.getPathSequence());
-                    }
-
-                    mCPPResult = new FinalPaths(KruskalMSTS,A, nr, p.getRobotBinary(), AllRealPaths, false);
-                    mCPPResult.paint();
-
-                    mainFrame.remove(ColorGrid);
-                    mainFrame.getContentPane().add(BorderLayout.CENTER,mCPPResult);
-                    mainFrame.setVisible(true);
-                    mainFrame.repaint();
-                }else {
-                    appendToPane("The algorithm was terminated without finding an optimal cells assignment\n\n", Color.WHITE);
-                    enableComponents(UserInputPanel,true);
-                    ColorGrid.enable = true;
-                    appendToPane("Interface is again released\n\n", Color.WHITE);
-                }
-            }
-
-        }
-
-
-
-        private int[][] makeGridBinary(){
-            int[][] retM = new int[rows][cols];
-            for (int i=0;i<rows;i++) {
-                for (int j = 0; j <  cols; j++) {
-                    if (EnvironmentGrid[i][j]!=1){
-                        retM[i][j]=1;
-                    }
-                }
-            }
-            return retM;
-        }
-
-
-        private boolean[][] CalcRealBinaryReg(boolean[][] BinrayRobotRegion){
-            boolean[][] RealBinrayRobotRegion = new boolean[2*rows][2*cols];
-            for (int i=0;i<2*rows;i++){
-                for (int j=0;j<2*cols;j++){
-                    RealBinrayRobotRegion[i][j] = BinrayRobotRegion[i/2][j/2];
-                }
-            }
-            return RealBinrayRobotRegion;
-        }
-
-        private ArrayList<Vector> calculateMSTs(ArrayList<boolean[][]> BinrayRobotRegions, int nr){
-            ArrayList<Vector> MSTs = new ArrayList<>();
-            for (int r=0;r<nr;r++){
-                Kruskal k = new Kruskal(rows*cols);
-                k.initializeGraph(BinrayRobotRegions.get(r),true);
-                k.performKruskal();
-                MSTs.add(k.getAllNewEdges());
-            }
-            return MSTs;
         }
 
     }
+
+    class DARPHeavyTask extends SwingWorker<Integer,String>{
+
+        private DARP p;
+
+        DARPHeavyTask(DARP problem){
+            this.p = problem;
+        }
+
+        public Integer doInBackground(){
+            p.constructAssignmentM();
+            return 42;
+        }
+
+        public void done(){
+            if (this.isCancelled()){
+                appendToPane("DARP execution was successfully terminated\n\n", Color.WHITE);
+                enableComponents(UserInputPanel,true);
+                ColorGrid.enable = true;
+                appendToPane("Interface released\n\n", Color.WHITE);
+                return;
+            }
+
+
+            if (p.getSuccess()){
+                int [][] A = p.getAssignmentMatrix();
+                appendToPane("DARP found an optimal space division\n\n", Color.WHITE);
+
+                ColorsNr = new Color[nr];
+                for (int r=0;r<nr;r++){ColorsNr[r]=generateRandomColor(null);}
+
+
+                DarpResult = new DARPPane(A,nr,p.getRobotBinary());
+                DarpResult.paint();
+                enableComponents(UserInputPanel,true);
+                ArrayList<Vector> KruskalMSTS = calculateMSTs(p.getBinrayRobotRegions(), nr);
+                EffectiveSize = p.getEffectiveSize();
+                maxCellsRobot =p.getMaxCellsAss();
+                minCellsRobot = p.getMinCellsAss();
+                estimatedTime = p.getElapsedTime();
+
+                DisplayFinalPanel();
+
+                ArrayList<Integer[]> InitRobots = p.getRobotsInit();
+
+                ArrayList<ArrayList<Integer[]>> AllRealPaths = new ArrayList<>();
+                for (int r=0;r<nr;r++) {
+                    CalculateTrajectories ct = new CalculateTrajectories(rows,cols, KruskalMSTS.get(r)); //Send MSTs
+                    ct.initializeGraph(CalcRealBinaryReg(p.getBinrayRobotRegions().get(r)), true); //Send [x2 x2] Binary Robot Region
+                    ct.RemoveTheAppropriateEdges();
+                    ct.CalculatePathsSequence(4*InitRobots.get(r)[0]*cols+2*InitRobots.get(r)[1]);
+                    AllRealPaths.add(ct.getPathSequence());
+                }
+
+                mCPPResult = new FinalPaths(KruskalMSTS,A, nr, p.getRobotBinary(), AllRealPaths, false);
+                mCPPResult.paint();
+
+                mainFrame.remove(ColorGrid);
+                mainFrame.getContentPane().add(BorderLayout.CENTER,mCPPResult);
+                mainFrame.setVisible(true);
+                mainFrame.repaint();
+            }else {
+                appendToPane("The algorithm after "+4*p.getDiscr()+"x"+p.getMaxIter()+" iterations wasn't able " +
+                        "to find an cells assignment with at most "+4*p.getDiscr()+" discrepancy " +
+                        "among the robots paths\n\n", Color.WHITE);
+                enableComponents(UserInputPanel,true);
+                ColorGrid.enable = true;
+                appendToPane("Interface released\n\n", Color.WHITE);
+            }
+        }
+
+    }
+
+
+
+    private int[][] makeGridBinary(){
+        int[][] retM = new int[rows][cols];
+        for (int i=0;i<rows;i++) {
+            for (int j = 0; j <  cols; j++) {
+                if (EnvironmentGrid[i][j]!=1){
+                    retM[i][j]=1;
+                }
+            }
+        }
+        return retM;
+    }
+
+
+    private boolean[][] CalcRealBinaryReg(boolean[][] BinrayRobotRegion){
+        boolean[][] RealBinrayRobotRegion = new boolean[2*rows][2*cols];
+        for (int i=0;i<2*rows;i++){
+            for (int j=0;j<2*cols;j++){
+                RealBinrayRobotRegion[i][j] = BinrayRobotRegion[i/2][j/2];
+            }
+        }
+        return RealBinrayRobotRegion;
+    }
+
+    private ArrayList<Vector> calculateMSTs(ArrayList<boolean[][]> BinrayRobotRegions, int nr){
+        ArrayList<Vector> MSTs = new ArrayList<>();
+        for (int r=0;r<nr;r++){
+            Kruskal k = new Kruskal(rows*cols);
+            k.initializeGraph(BinrayRobotRegions.get(r),true);
+            k.performKruskal();
+            MSTs.add(k.getAllNewEdges());
+        }
+        return MSTs;
+    }
+
+
+
+
 
     private boolean isNumeric(String s) {
         return s.matches("[-+]?\\d*\\.?\\d+");
@@ -967,8 +1035,6 @@ public class MainGUI{
                 subJPanelsList.get(i).setBorder(BorderFactory.createLineBorder(Color.WHITE));
             }
 
-
-
             switch (LinesToAdd[0]) {
                 case 1: subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, c)); break; //up
                 case 2:  subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, c));break; //left
@@ -982,10 +1048,6 @@ public class MainGUI{
                 case 3:  subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, c)); break; //right
                 case 4:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, c));break; //down
             }
-
-
-
-
 
             for (int i=0;i<4;i++){pan.add(subJPanelsList.get(i));}
 
