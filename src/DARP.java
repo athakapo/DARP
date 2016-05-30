@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * Created by atkap on 5/16/2016.
  */
-public class DARP {
+public class DARP{
 
 
     private double variateWeight, randomLevel;
@@ -22,9 +22,10 @@ public class DARP {
     private ArrayList<boolean[][]> BinrayRobotRegions;
     private int maxCellsAss,minCellsAss;
     private double elapsedTime;
+    private int discr;
 
 
-    public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel){
+    public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel, int discr){
         this.rows =r;
         this.cols = c;
         this.GridEnv = deepCopyMatrix(src);
@@ -36,9 +37,9 @@ public class DARP {
         this.robotBinary = new boolean[rows][cols];
         this.variateWeight = vWeight;
         this.randomLevel = rLevel;
+        this.discr = discr;
         defineRobotsObstacles();
     }
-
 
 
     public void constructAssignmentM(){
@@ -90,7 +91,7 @@ public class DARP {
 
         success = false;
 
-        while(!success){
+        while(termThr<=discr && !success){
             //Initializations
 
             success = true;

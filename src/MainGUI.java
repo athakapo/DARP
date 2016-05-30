@@ -19,7 +19,7 @@ public class MainGUI{
     private JFrame mainFrame;
 
     private JPanel UserInputPanel,ConsolePanel,RightPanel;
-    private JTextField textboxRows,textboxCols,textBoxMaxIter,textBoxCCvariation,textBoxRandomLevel;
+    private JTextField textboxRows,textboxCols,textBoxMaxIter,textBoxCCvariation,textBoxRandomLevel,textBoxMaxDiscr;
     private JLabel Title;
     private ButtonGroup Items;
 
@@ -67,6 +67,9 @@ public class MainGUI{
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
         textBoxMaxIter.setText("20000");
+        textBoxMaxDiscr = new JTextField(5);
+        textBoxMaxDiscr.setDocument(new JTextFieldLimit(4));
+        textBoxMaxDiscr.setText("40");
         textBoxCCvariation = new JTextField(6);
         textBoxCCvariation.setDocument(new JTextFieldLimit(6));
         textBoxCCvariation.setText("0.01");
@@ -218,16 +221,19 @@ public class MainGUI{
         RobotButton.addActionListener(new CurrentComponentToAdd());
 
         JPanel DARP = new JPanel();
-        DARP.setPreferredSize(new Dimension(265,150));
+        DARP.setPreferredSize(new Dimension(265,156));
         JButton startExp = new JButton("RUN!");
         startExp.addActionListener(new StartDARP());
+        JLabel MaxDiscreLabel = new JLabel("#Maximum Cells Discrepancy: ");
+
         JLabel MaxIterLabel = new JLabel("#Maximum Iterations: ");
         DARP.setBackground(Color.white);
 
         JLabel CCvariation = new JLabel("Connected Component: ");
         JLabel RandomLevelLabel = new JLabel("%Random Influence: ");
 
-
+        DARP.add(MaxDiscreLabel);
+        DARP.add(textBoxMaxDiscr);
         DARP.add(MaxIterLabel);
         DARP.add(textBoxMaxIter);
         DARP.add(CCvariation);
@@ -253,7 +259,7 @@ public class MainGUI{
     }
 
 
-    private void DisplayFinalPanel() {
+    protected void DisplayFinalPanel() {
         UserInputPanel.removeAll();
         CurrentCompDisp=2;
         UserInputPanel.setBackground(Color.white);
@@ -578,15 +584,17 @@ public class MainGUI{
             mainFrame.repaint();
         }
 
-        private boolean isNumeric(String s) {
-            return s.matches("[-+]?\\d*\\.?\\d+");
-        }
     }
 
     private class StartDARP implements ActionListener{
         public void actionPerformed(ActionEvent event){
 
-            if (!isNumeric(textBoxMaxIter.getText())){
+            if (!isInteger(textBoxMaxDiscr.getText())){
+                appendToPane("The maximum number of allowed cells' discrepancy is not a positive integer\n\n", Color.WHITE);
+                return;
+            }
+
+            if (!isInteger(textBoxMaxIter.getText())){
                 appendToPane("The maximum number of iterations is not a positive integer\n\n", Color.WHITE);
                 return;
             }
@@ -612,8 +620,10 @@ public class MainGUI{
             int MaxIter = Integer.parseInt(textBoxMaxIter.getText());
             double CCvariation = Double.parseDouble(textBoxCCvariation.getText());
             double randomLevel = Double.parseDouble(textBoxRandomLevel.getText());
+            int dcells = Integer.parseInt(textBoxMaxDiscr.getText());
 
-            DARP problem = new DARP(rows, cols, EnvironmentGrid, MaxIter,CCvariation, randomLevel);
+
+            DARP problem = new DARP(rows, cols, EnvironmentGrid, MaxIter,CCvariation, randomLevel,dcells);
 
             if (problem.getNr()<=0) {
                 appendToPane("Please define at least one robot (blue cell)\n\n", Color.WHITE);
@@ -622,7 +632,6 @@ public class MainGUI{
 
             enableComponents(UserInputPanel,false);
             ColorGrid.enable =false;
-            //appendToPane("Interface is now locked\n\n", Color.WHITE);
 
             nr = problem.getNr();
             obs = problem.getNumOB();
@@ -630,61 +639,84 @@ public class MainGUI{
                     "been received\n\n", Color.WHITE);
 
             appendToPane("Starting DARP algorithm...\n\n", Color.WHITE);
+            appendToPane("Interface is now locked\n\n", Color.WHITE);
 
-            problem.constructAssignmentM();
+            DARPHeavyTask DARPhelper = new DARPHeavyTask(problem);
+            DARPhelper.execute();
 
-            if (problem.getSuccess()){
-                int [][] A = problem.getAssignmentMatrix();
-                appendToPane("DARP found an optimal space division\n\n", Color.WHITE);
-
-                ColorsNr = new Color[nr];
-                for (int r=0;r<nr;r++){ColorsNr[r]=generateRandomColor(null);}
+        }
 
 
-                DarpResult = new DARPPane(A,nr,problem.getRobotBinary());
-                DarpResult.paint();
-                enableComponents(UserInputPanel,true);
-                ArrayList<Vector> KruskalMSTS = calculateMSTs(problem.getBinrayRobotRegions(), nr);
-                EffectiveSize = problem.getEffectiveSize();
-                maxCellsRobot =problem.getMaxCellsAss();
-                minCellsRobot = problem.getMinCellsAss();
-                estimatedTime = problem.getElapsedTime();
+
+        class DARPHeavyTask extends SwingWorker<Integer,String>{
+
+            private DARP p;
+
+            DARPHeavyTask(DARP problem){
+                this.p = problem;
+            }
 
 
-                DisplayFinalPanel();
+            public Integer doInBackground(){
+                p.constructAssignmentM();
+                return 42;
+            }
 
-                ArrayList<Integer[]> InitRobots = problem.getRobotsInit();
+            public void done(){
+                if (p.getSuccess()){
+                    int [][] A = p.getAssignmentMatrix();
+                    appendToPane("DARP found an optimal space division\n\n", Color.WHITE);
 
-                ArrayList<ArrayList<Integer[]>> AllRealPaths = new ArrayList<>();
-                for (int r=0;r<nr;r++) {
-                    CalculateTrajectories ct = new CalculateTrajectories(rows,cols, KruskalMSTS.get(r)); //Send MSTs
-                    ct.initializeGraph(CalcRealBinaryReg(problem.getBinrayRobotRegions().get(r)), true); //Send [x2 x2] Binary Robot Region
-                    ct.RemoveTheAppropriateEdges();
-                    ct.CalculatePathsSequence(4*InitRobots.get(r)[0]*cols+2*InitRobots.get(r)[1]);
-                    AllRealPaths.add(ct.getPathSequence());
+                    ColorsNr = new Color[nr];
+                    for (int r=0;r<nr;r++){ColorsNr[r]=generateRandomColor(null);}
+
+
+                    DarpResult = new DARPPane(A,nr,p.getRobotBinary());
+                    DarpResult.paint();
+                    enableComponents(UserInputPanel,true);
+                    ArrayList<Vector> KruskalMSTS = calculateMSTs(p.getBinrayRobotRegions(), nr);
+                    EffectiveSize = p.getEffectiveSize();
+                    maxCellsRobot =p.getMaxCellsAss();
+                    minCellsRobot = p.getMinCellsAss();
+                    estimatedTime = p.getElapsedTime();
+
+                    DisplayFinalPanel();
+
+                    ArrayList<Integer[]> InitRobots = p.getRobotsInit();
+
+                    ArrayList<ArrayList<Integer[]>> AllRealPaths = new ArrayList<>();
+                    for (int r=0;r<nr;r++) {
+                        CalculateTrajectories ct = new CalculateTrajectories(rows,cols, KruskalMSTS.get(r)); //Send MSTs
+                        ct.initializeGraph(CalcRealBinaryReg(p.getBinrayRobotRegions().get(r)), true); //Send [x2 x2] Binary Robot Region
+                        ct.RemoveTheAppropriateEdges();
+                        ct.CalculatePathsSequence(4*InitRobots.get(r)[0]*cols+2*InitRobots.get(r)[1]);
+                        AllRealPaths.add(ct.getPathSequence());
+                    }
+
+                    mCPPResult = new FinalPaths(KruskalMSTS,A, nr, p.getRobotBinary(), AllRealPaths, false);
+                    mCPPResult.paint();
+
+                    mainFrame.remove(ColorGrid);
+                    mainFrame.getContentPane().add(BorderLayout.CENTER,mCPPResult);
+                    mainFrame.setVisible(true);
+                    mainFrame.repaint();
+                }else {
+                    appendToPane("The algorithm was terminated without finding an optimal cells assignment\n\n", Color.WHITE);
+                    enableComponents(UserInputPanel,true);
+                    ColorGrid.enable = true;
+                    appendToPane("Interface is again released\n\n", Color.WHITE);
                 }
-
-                mCPPResult = new FinalPaths(KruskalMSTS,A, nr, problem.getRobotBinary(), AllRealPaths, false);
-                mCPPResult.paint();
-
-                mainFrame.remove(ColorGrid);
-                mainFrame.getContentPane().add(BorderLayout.CENTER,mCPPResult);
-                mainFrame.setVisible(true);
-                mainFrame.repaint();
-            }else {
-                appendToPane("The algorithm was terminated after "+MaxIter+" iterations, without finding " +
-                        "an optimal cells assignment\n\n", Color.WHITE);
-                enableComponents(UserInputPanel,true);
-                ColorGrid.enable = true;
             }
 
         }
+
+
 
         private int[][] makeGridBinary(){
             int[][] retM = new int[rows][cols];
             for (int i=0;i<rows;i++) {
                 for (int j = 0; j <  cols; j++) {
-                    if (EnvironmentGrid[i][j]==0){
+                    if (EnvironmentGrid[i][j]!=1){
                         retM[i][j]=1;
                     }
                 }
@@ -714,22 +746,29 @@ public class MainGUI{
             return MSTs;
         }
 
-
-
-        private boolean isNumeric(String s) {
-            return s.matches("[-+]?\\d*\\.?\\d+");
-        }
-
-        private  boolean isNumber(String string) {
-            try {
-                Double.parseDouble(string);
-            } catch (Exception e) {
-                return false;
-            }
-            return true;
-        }
     }
 
+    private boolean isNumeric(String s) {
+        return s.matches("[-+]?\\d*\\.?\\d+");
+    }
+
+    private  boolean isInteger(String string) {
+        try {
+            Integer.parseInt(string);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+    private  boolean isNumber(String string) {
+        try {
+            Double.parseDouble(string);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
 
     private Color generateRandomColor(Color mix) {
         Random random = new Random();
