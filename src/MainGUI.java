@@ -1,18 +1,14 @@
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.text.*;
-
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.lang.Object;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Vector;
 
 /**
  * Created by thanasis on 5/5/2016.
@@ -73,14 +69,14 @@ public class MainGUI{
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
         textBoxMaxIter.setText("20000");
-        textBoxMaxDiscr = new JTextField(5);
-        textBoxMaxDiscr.setDocument(new JTextFieldLimit(4));
+        textBoxMaxDiscr = new JTextField(4);
+        textBoxMaxDiscr.setDocument(new JTextFieldLimit(3));
         textBoxMaxDiscr.setText("40");
         textBoxCCvariation = new JTextField(6);
         textBoxCCvariation.setDocument(new JTextFieldLimit(6));
         textBoxCCvariation.setText("0.01");
-        textBoxRandomLevel = new JTextField(6);
-        textBoxRandomLevel.setDocument(new JTextFieldLimit(6));
+        textBoxRandomLevel = new JTextField(7);
+        textBoxRandomLevel.setDocument(new JTextFieldLimit(7));
         textBoxRandomLevel.setText("0.0001");
         ObstaclesButton = new JRadioButton("Obstacle");
         ObstaclesButton.setBackground(Color.white);
@@ -94,11 +90,12 @@ public class MainGUI{
         ColorGrid = null;
 
         DefineRightPanel();
+
         mainFrame.getContentPane().add(BorderLayout.EAST,RightPanel);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.pack();
         mainFrame.setLocationByPlatform(true);
-        mainFrame.setSize(1100,800);
+        mainFrame.setSize(1250,850);
         mainFrame.setVisible(true);
     }
 
@@ -107,7 +104,7 @@ public class MainGUI{
     {
         RightPanel = new JPanel();
         //RightPanel.setLayout(new GridLayout(2,1));
-        RightPanel.setPreferredSize(new Dimension(270,800));
+        RightPanel.setPreferredSize(new Dimension(295,800));
         RightPanel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         DefineGridDimensions();
@@ -227,7 +224,7 @@ public class MainGUI{
         RobotButton.addActionListener(new CurrentComponentToAdd());
 
         JPanel DARP = new JPanel();
-        DARP.setPreferredSize(new Dimension(265,185));
+        DARP.setPreferredSize(new Dimension(280,177));
 
         JLabel MaxDiscreLabel = new JLabel("#Max Cells Discrepancy: 4x");
 
@@ -255,8 +252,8 @@ public class MainGUI{
 
         AbortDARP = new JButton("Abort");
         AbortDARP.addActionListener(new AbortDARPListener());
+        AbortDARP.setVisible(false);
         AbortDARP.setEnabled(false);
-
 
         DARP.add(MaxDiscreLabel);
         DARP.add(textBoxMaxDiscr);
@@ -337,7 +334,7 @@ public class MainGUI{
 
         SuperRadio = new JPanel();
         //SuperRadio.setLayout(new BoxLayout(SuperRadio, BoxLayout.Y_AXIS));
-        SuperRadio.setPreferredSize(new Dimension(265,110));
+        SuperRadio.setPreferredSize(new Dimension(265,131));
         SuperRadio.setBackground(Color.WHITE);
         SuperRadio.add(RadioAreaButtons);
         SuperRadio.add(RepaintDARP);
@@ -619,10 +616,11 @@ public class MainGUI{
             try {
             Thread.sleep(100);
             } catch (InterruptedException ex) {
-                System.err.println("Error 01 while trying to abort DARP execution");
+                System.err.println("Error 01 while trying sleep before the thread deletion");
                 System.exit(1);
             }
             DARPhelper.cancel(true);
+            /*
             while (!DARPhelper.isCancelled()) {
                 try {
                     Thread.sleep(50);
@@ -630,10 +628,7 @@ public class MainGUI{
                     System.err.println("Error 02 while trying to abort DARP execution");
                     System.exit(1);
                 }
-            }
-            AbortDARP.setEnabled(false);
-            enableComponents(UserInputPanel,true);
-            ColorGrid.enable = true;
+            }*/
         }
     }
 
@@ -685,6 +680,7 @@ public class MainGUI{
 
             enableComponents(UserInputPanel,false);
             ColorGrid.enable =false;
+            AbortDARP.setVisible(true);
             AbortDARP.setEnabled(true);
 
             nr = problem.getNr();
@@ -698,6 +694,7 @@ public class MainGUI{
             DARPhelper = new DARPHeavyTask(problem);
             DARPhelper.execute();
 
+            mainFrame.setVisible(true);
             mainFrame.repaint();
 
         }
@@ -719,10 +716,18 @@ public class MainGUI{
 
         public void done(){
             if (this.isCancelled()){
+                p.setCanceled(true);
+                p = null;
                 appendToPane("DARP execution was successfully terminated\n\n", Color.WHITE);
+
+
                 enableComponents(UserInputPanel,true);
                 ColorGrid.enable = true;
+                AbortDARP.setVisible(false);
+                //AbortDARP.setEnabled(false);
                 appendToPane("Interface released\n\n", Color.WHITE);
+                mainFrame.setVisible(true);
+                mainFrame.repaint();
                 return;
             }
 
@@ -766,7 +771,7 @@ public class MainGUI{
                 mainFrame.repaint();
             }else {
                 appendToPane("The algorithm after "+4*p.getDiscr()+"x"+p.getMaxIter()+" iterations wasn't able " +
-                        "to find an cells assignment with at most "+4*p.getDiscr()+" discrepancy " +
+                        "to find a valid cells division with at most "+4*p.getDiscr()+" discrepancy " +
                         "among the robots paths\n\n", Color.WHITE);
                 enableComponents(UserInputPanel,true);
                 ColorGrid.enable = true;

@@ -23,6 +23,7 @@ public class DARP{
     private int maxCellsAss,minCellsAss;
     private double elapsedTime;
     private int discr;
+    private boolean canceled;
 
 
     public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel, int discr){
@@ -38,6 +39,7 @@ public class DARP{
         this.variateWeight = vWeight;
         this.randomLevel = rLevel;
         this.discr = discr;
+        this.canceled = false;
         defineRobotsObstacles();
     }
 
@@ -91,7 +93,7 @@ public class DARP{
 
         success = false;
 
-        while(termThr<=discr && !success){
+        while(termThr<=discr && !success && !canceled){
             //Initializations
 
             success = true;
@@ -104,7 +106,7 @@ public class DARP{
 
             //Main optimization loop
             int iter = 0;
-            while (iter <= maxIter) {
+            while (iter <= maxIter && !canceled) {
                 assign(MetricMatrix);
 
                 ArrayList<float[][]> ConnectedMultiplierList = new ArrayList<>();
@@ -444,8 +446,7 @@ public class DARP{
     public double getElapsedTime() {return elapsedTime;}
     public int getDiscr(){return discr;}
     public int getMaxIter() {return  maxIter;}
-
-
+    public void setCanceled(boolean c) {this.canceled=c;}
 
 
 }
