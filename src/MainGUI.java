@@ -16,6 +16,13 @@ import java.util.Vector;
 
 public class MainGUI{
 
+    private final ImageIcon run_Hover = new ImageIcon(getClass().getResource("resources/run_Hover.png"));
+    private final ImageIcon run_Default = new ImageIcon(getClass().getResource("resources/run_Default.png"));
+    private final ImageIcon run_Pressed = new ImageIcon(getClass().getResource("resources/run_Pressed.png"));
+    private final ImageIcon abort_Hover = new ImageIcon(getClass().getResource("resources/abort_Hover.jpg"));
+    private final ImageIcon abort_Default = new ImageIcon(getClass().getResource("resources/abort_Default.png"));
+    private final ImageIcon abort_Pressed = new ImageIcon(getClass().getResource("resources/abort_Pressed.png"));
+
     private JFrame mainFrame;
 
     private JPanel UserInputPanel,ConsolePanel,RightPanel;
@@ -32,7 +39,7 @@ public class MainGUI{
     private JRadioButton ObstaclesButton;
     private JRadioButton EmptyButton;
     private JRadioButton RobotButton;
-    private JButton RepaintDARP,AbortDARP;
+    private JButton RepaintDARP,AbortDARP,startExp;
     private JTextPane consoleToPrint;
 
     private GridPane ColorGrid;
@@ -51,6 +58,8 @@ public class MainGUI{
     private JCheckBox checkBoxMSTs;
 
     private DARPHeavyTask DARPhelper;
+
+
 
 
 
@@ -224,7 +233,7 @@ public class MainGUI{
         RobotButton.addActionListener(new CurrentComponentToAdd());
 
         JPanel DARP = new JPanel();
-        DARP.setPreferredSize(new Dimension(280,177));
+        DARP.setPreferredSize(new Dimension(280,207));
 
         JLabel MaxDiscreLabel = new JLabel("#Max Cells Discrepancy: 4x");
 
@@ -234,24 +243,19 @@ public class MainGUI{
         JLabel CCvariation = new JLabel("Connected Component: ");
         JLabel RandomLevelLabel = new JLabel("%Random Influence: ");
 
-        /*
-        JButton startExp;
-        try{
-            BufferedImage buttonIcon = ImageIO.read(new File("src/resources/run.png"));
-            startExp = new JButton(new ImageIcon(buttonIcon));
-            startExp.setBorderPainted(false);
-            startExp.setFocusPainted(false);
-            startExp.setContentAreaFilled(false);
-        }catch(IOException ex){
-            System.out.println("RUN icon cannot be found");
-            startExp = new JButton("RUN");
-        }
-        */
-        JButton startExp = new JButton("RUN");
+        startExp = new JButton(run_Default);
         startExp.addActionListener(new StartDARP());
+        startExp.addMouseListener(new RunButton());
+        startExp.setBorderPainted(false);
+        startExp.setFocusPainted(false);
+        startExp.setContentAreaFilled(false);
 
-        AbortDARP = new JButton("Abort");
+        AbortDARP = new JButton(abort_Default);
         AbortDARP.addActionListener(new AbortDARPListener());
+        AbortDARP.addMouseListener(new AbortButton());
+        AbortDARP.setBorderPainted(false);
+        AbortDARP.setFocusPainted(false);
+        AbortDARP.setContentAreaFilled(false);
         AbortDARP.setVisible(false);
         AbortDARP.setEnabled(false);
 
@@ -633,8 +637,58 @@ public class MainGUI{
     }
 
 
+    private class AbortButton implements MouseListener{
+
+        public void mouseEntered(MouseEvent e) {
+            AbortDARP.setIcon(abort_Hover);
+        }
+
+        public void mouseClicked(MouseEvent e) {
+            AbortDARP.setIcon(abort_Pressed);
+        }
+
+        public void mouseReleased(MouseEvent e) {
+            AbortDARP.setIcon(abort_Hover);
+        }
+
+        public void mouseExited(MouseEvent e) {
+            AbortDARP.setIcon(abort_Default);
+        }
+
+        public void mousePressed(MouseEvent e) {
+            AbortDARP.setIcon(abort_Pressed);
+        }
+
+    }
+
+
+    private class RunButton implements MouseListener{
+
+        public void mouseEntered(MouseEvent e) {
+            startExp.setIcon(run_Hover);
+        }
+
+        public void mouseClicked(MouseEvent e) {
+            startExp.setIcon(run_Pressed);
+        }
+
+        public void mouseReleased(MouseEvent e) {
+            startExp.setIcon(run_Hover);
+        }
+
+        public void mouseExited(MouseEvent e) {
+            startExp.setIcon(run_Default);
+        }
+
+        public void mousePressed(MouseEvent e) {
+            startExp.setIcon(run_Pressed);
+        }
+
+    }
+
 
     private class StartDARP implements ActionListener{
+
         public void actionPerformed(ActionEvent event){
 
             if (!isInteger(textBoxMaxDiscr.getText())){
@@ -680,6 +734,8 @@ public class MainGUI{
 
             enableComponents(UserInputPanel,false);
             ColorGrid.enable =false;
+            startExp.setVisible(false);
+            startExp.setEnabled(false);
             AbortDARP.setVisible(true);
             AbortDARP.setEnabled(true);
 
@@ -724,7 +780,8 @@ public class MainGUI{
                 enableComponents(UserInputPanel,true);
                 ColorGrid.enable = true;
                 AbortDARP.setVisible(false);
-                //AbortDARP.setEnabled(false);
+                startExp.setVisible(true);
+                startExp.setEnabled(true);
                 appendToPane("Interface released\n\n", Color.WHITE);
                 mainFrame.setVisible(true);
                 mainFrame.repaint();
