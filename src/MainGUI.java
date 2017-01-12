@@ -1,11 +1,18 @@
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Vector;
@@ -51,15 +58,19 @@ public class MainGUI{
     private FinalPaths mCPPResult;
 
     private Color[] ColorsNr;
-    private int nr, EffectiveSize, maxCellsRobot, minCellsRobot,rows,cols, obs, CurrentIDXAdd, CurrentCompDisp;
+    private int nr, EffectiveSize, maxCellsRobot, minCellsRobot,rows,cols, obs, CurrentIDXAdd, CurrentCompDisp, axisScale;
 
-    private boolean retainData;
+    private boolean retainData,imageMode = false;
 
     private JCheckBox checkBoxMSTs;
 
     private DARPHeavyTask DARPhelper;
 
+    private byte[][] ByteImage;
 
+    private JFileChooser fc, saveAS;
+
+    private JCheckBox Importance;
 
 
 
@@ -71,16 +82,16 @@ public class MainGUI{
         UserInputPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         textboxRows = new JTextField(4);
         textboxRows.setDocument(new JTextFieldLimit(2));
-        textboxRows.setText("15");
+        textboxRows.setText("28");
         textboxCols = new JTextField(4);
         textboxCols.setDocument(new JTextFieldLimit(2));
-        textboxCols.setText("15");
+        textboxCols.setText("28");
         textBoxMaxIter = new JTextField(6);
         textBoxMaxIter.setDocument(new JTextFieldLimit(6));
-        textBoxMaxIter.setText("20000");
+        textBoxMaxIter.setText("80000");
         textBoxMaxDiscr = new JTextField(4);
         textBoxMaxDiscr.setDocument(new JTextFieldLimit(3));
-        textBoxMaxDiscr.setText("40");
+        textBoxMaxDiscr.setText("30");
         textBoxCCvariation = new JTextField(6);
         textBoxCCvariation.setDocument(new JTextFieldLimit(6));
         textBoxCCvariation.setText("0.01");
@@ -94,9 +105,16 @@ public class MainGUI{
         RobotButton = new JRadioButton("Robot");
         RobotButton.setBackground(Color.white);
         CurrentIDXAdd=-1;
+        axisScale = 400;
         retainData=false;
         DarpResult = null;
         ColorGrid = null;
+        Importance = new JCheckBox();
+        fc = new JFileChooser();
+        saveAS = new JFileChooser();
+        File workingDirectory = new File(System.getProperty("user.dir"));
+        fc.setCurrentDirectory(workingDirectory);
+        saveAS.setCurrentDirectory(workingDirectory);
 
         DefineRightPanel();
 
@@ -104,7 +122,8 @@ public class MainGUI{
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.pack();
         mainFrame.setLocationByPlatform(true);
-        mainFrame.setSize(1250,850);
+        mainFrame.setSize(1250,840);
+        //mainFrame.setSize(900,850);
         mainFrame.setVisible(true);
     }
 
@@ -140,7 +159,7 @@ public class MainGUI{
 
         JLabel textRows = new JLabel("#Rows:  2x");
 
-        JLabel textCols = new JLabel("#Cols:  2x");
+        JLabel textCols = new JLabel("   #Cols:  2x");
 
         JButton submitRowsCols = new JButton("Submit");
         submitRowsCols.addActionListener(new submitRowsColsListener());
@@ -153,13 +172,284 @@ public class MainGUI{
         ColsPane.setBackground(Color.white);
         ColsPane.add(textCols);
         ColsPane.add(textboxCols);
+        JPanel SubmitPane = new JPanel();
+        SubmitPane.setBackground(Color.white);
+        SubmitPane.add(submitRowsCols);
+
+        JPanel FirstOption = new JPanel();
+        FirstOption.setBackground(Color.white);
+        FirstOption.add(new JSeparator());
+        FirstOption.setLayout(new BoxLayout(FirstOption, BoxLayout.Y_AXIS));
+        FirstOption.add(new JLabel("Create an empty grid with dimensions:"));
+        FirstOption.add(RowsPane);
+        FirstOption.add(ColsPane);
+        FirstOption.add(SubmitPane);
+
+
+        JPanel OrPane = new JPanel();
+        OrPane.setBackground(Color.white);
+        JLabel OR = new JLabel("OR");
+        OR.setFont(new Font("serif", Font.BOLD, 18));
+        OrPane.add(OR);
+
+
+        JPanel ImportPane = new JPanel();
+        ImportPane.setBackground(Color.white);
+        ImportPane.add(new JLabel("Import an image*"));
+        JButton Browse = new JButton("Browse");
+        Browse.addActionListener(new BrowseL());
+        ImportPane.add(Browse);
+
+        JPanel WarningImport = new JPanel();
+        WarningImport.setBackground(Color.white);
+        WarningImport.setLayout(new BoxLayout(WarningImport, BoxLayout.Y_AXIS));
+        WarningImport.add(new JLabel("*For better results import"));
+        WarningImport.add(new JLabel("low pixel density images"));
+
+        JPanel SecondOption = new JPanel();
+        SecondOption.setBackground(Color.white);
+        SecondOption.setLayout(new BoxLayout(SecondOption, BoxLayout.Y_AXIS));
+        SecondOption.add(OrPane);
+        SecondOption.add(new JSeparator());
+        SecondOption.add(ImportPane);
+        SecondOption.add(WarningImport);
 
 
         UserInputPanel.add(Title);
-        UserInputPanel.add(RowsPane);
-        UserInputPanel.add(ColsPane);
-        UserInputPanel.add(submitRowsCols);
+        UserInputPanel.add(FirstOption);
+        UserInputPanel.add(SecondOption);
     }
+
+
+    class BrowseL implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            FileFilter imageFilter = new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes());
+            fc.setFileFilter(imageFilter);
+            // Demonstrate "Open" dialog:
+            int rVal = fc.showOpenDialog(mainFrame);
+            if (rVal == JFileChooser.APPROVE_OPTION) {
+                BufferedImage image = null;
+                try
+                {
+                    image = ImageIO.read(new File(fc.getCurrentDirectory().toString()+System.getProperty("file.separator")+fc.getSelectedFile().getName().toString()));
+                }
+                catch (Exception ex)
+                {
+                    appendToPane("[ERROR] A problem encountered while loading the image\n\n", Color.WHITE);
+                    return;
+                }
+
+
+                IPHeavyTask IPobj =  new IPHeavyTask(image);
+                IPobj.execute();
+
+            }
+        }
+    }
+
+
+    class IPHeavyTask extends SwingWorker<Integer,String>{
+
+        BufferedImage image;
+
+        IPHeavyTask(BufferedImage im){
+            this.image=im;
+        }
+
+        public Integer doInBackground(){
+            int imageSizeThres = 55;
+            Image toolkitImage = null;
+            if (image.getHeight() > imageSizeThres && image.getWidth() > imageSizeThres) {
+                toolkitImage=  image.getScaledInstance(imageSizeThres, imageSizeThres, Image.SCALE_DEFAULT);
+                image = new BufferedImage(imageSizeThres, imageSizeThres, BufferedImage.TYPE_INT_ARGB);
+                Graphics g = image.getGraphics();
+                g.drawImage(toolkitImage, 0, 0, null);
+                g.dispose();
+            }else if(image.getHeight() > imageSizeThres){
+                toolkitImage= image.getScaledInstance(image.getWidth(), imageSizeThres, Image.SCALE_DEFAULT);
+                image = new BufferedImage(image.getWidth(), imageSizeThres, BufferedImage.TYPE_INT_ARGB);
+                Graphics g = image.getGraphics();
+                g.drawImage(toolkitImage, 0, 0, null);
+                g.dispose();
+            }else if(image.getWidth() > imageSizeThres){
+                toolkitImage= image.getScaledInstance(imageSizeThres, image.getHeight(), Image.SCALE_DEFAULT);
+                image = new BufferedImage(imageSizeThres,  image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                Graphics g = image.getGraphics();
+                g.drawImage(toolkitImage, 0, 0, null);
+                g.dispose();
+            }
+
+
+            BufferedImage GrayImage = null;
+            if (image.getRaster().getNumDataElements()>1){
+                GrayImage = toGray(image);
+            }else{
+                GrayImage = image;
+            }
+            BufferedImage BinaryImage = binarize(GrayImage);
+
+            rows = BinaryImage.getHeight();
+            cols = BinaryImage.getWidth();
+            ByteImage = new byte[rows][];
+
+            for (int y = 0; y < rows; y++) {
+                ByteImage[y] = new byte[cols];
+
+                    for (int x = 0; x < cols; x++) {
+                    ByteImage[y][x] = (byte) (BinaryImage.getRGB(x, y) == 0xFFFFFFFF ? 0 : 1);
+                }
+            }
+
+
+            return 42;
+        }
+
+        public void done(){
+            appendToPane("The grid [" + rows+","+cols+"] has been created\n\n",Color.WHITE);
+            appendToPane("Define the Robots initial positions along with the fixed obstacles\n\n",Color.WHITE);
+            imageMode = true;
+            DefineRobotsObstacles();
+
+            mainFrame.setVisible(true);
+            mainFrame.repaint();
+        }
+    }
+
+
+    // The luminance method
+    private BufferedImage toGray(BufferedImage original) {
+
+        int alpha, red, green, blue;
+        int newPixel;
+
+        BufferedImage lum = new BufferedImage(original.getWidth(), original.getHeight(), original.getType());
+
+        for(int i=0; i<original.getWidth(); i++) {
+            for(int j=0; j<original.getHeight(); j++) {
+
+                // Get pixels by R, G, B
+                alpha = new Color(original.getRGB(i, j)).getAlpha();
+                red = new Color(original.getRGB(i, j)).getRed();
+                green = new Color(original.getRGB(i, j)).getGreen();
+                blue = new Color(original.getRGB(i, j)).getBlue();
+
+                red = (int) (0.21 * red + 0.71 * green + 0.07 * blue);
+                // Return back to original format
+                newPixel = colorToRGB(alpha, red, red, red);
+
+                // Write pixels into image
+                lum.setRGB(i, j, newPixel);
+
+            }
+        }
+
+        return lum;
+    }
+
+    private BufferedImage binarize(BufferedImage original) {
+
+        int red;
+        int newPixel;
+
+        int threshold = otsuTreshold(original);
+
+        BufferedImage binarized = new BufferedImage(original.getWidth(), original.getHeight(), original.getType());
+
+        for(int i=0; i<original.getWidth(); i++) {
+            for(int j=0; j<original.getHeight(); j++) {
+
+                // Get pixels
+                red = new Color(original.getRGB(i, j)).getRed();
+                int alpha = new Color(original.getRGB(i, j)).getAlpha();
+                if(red > threshold) {
+                    newPixel = 255;
+                }
+                else {
+                    newPixel = 0;
+                }
+                newPixel = colorToRGB(alpha, newPixel, newPixel, newPixel);
+                binarized.setRGB(i, j, newPixel);
+
+            }
+        }
+
+        return binarized;
+
+    }
+
+    // Get binary treshold using Otsu's method
+    private int otsuTreshold(BufferedImage original) {
+
+        int[] histogram = imageHistogram(original);
+        int total = original.getHeight() * original.getWidth();
+
+        float sum = 0;
+        for(int i=0; i<256; i++) sum += i * histogram[i];
+
+        float sumB = 0;
+        int wB = 0;
+        int wF = 0;
+
+        float varMax = 0;
+        int threshold = 0;
+
+        for(int i=0 ; i<256 ; i++) {
+            wB += histogram[i];
+            if(wB == 0) continue;
+            wF = total - wB;
+
+            if(wF == 0) break;
+
+            sumB += (float) (i * histogram[i]);
+            float mB = sumB / wB;
+            float mF = (sum - sumB) / wF;
+
+            float varBetween = (float) wB * (float) wF * (mB - mF) * (mB - mF);
+
+            if(varBetween > varMax) {
+                varMax = varBetween;
+                threshold = i;
+            }
+        }
+
+        return threshold;
+
+    }
+
+    // Return histogram of grayscale image
+    public int[] imageHistogram(BufferedImage input) {
+
+        int[] histogram = new int[256];
+
+        for(int i=0; i<histogram.length; i++) histogram[i] = 0;
+
+        for(int i=0; i<input.getWidth(); i++) {
+            for(int j=0; j<input.getHeight(); j++) {
+                int red = new Color(input.getRGB (i, j)).getRed();
+                histogram[red]++;
+            }
+        }
+
+        return histogram;
+
+    }
+
+
+    private int colorToRGB(int alpha, int red, int green, int blue) {
+
+        int newPixel = 0;
+        newPixel += alpha;
+        newPixel = newPixel << 8;
+        newPixel += red; newPixel = newPixel << 8;
+        newPixel += green; newPixel = newPixel << 8;
+        newPixel += blue;
+
+        return newPixel;
+
+    }
+
+
+
 
     private void DefineConsole() {
         ConsolePanel = new JPanel();
@@ -184,13 +474,20 @@ public class MainGUI{
 
 
     private void DefineRobotsObstacles() {
+
         UserInputPanel.removeAll();
         UserInputPanel.setBackground(Color.white);
 
-        if (!retainData) {
+
+        if (imageMode){
+            EnvironmentGrid = new int[rows][cols];
+            ColorGrid = new GridPane(ByteImage);
+            imageMode=false;
+        } else if (!retainData) {
             EnvironmentGrid = new int[rows][cols];
             ColorGrid = new GridPane();
         }
+
         mainFrame.getContentPane().add(BorderLayout.CENTER,ColorGrid);
 
         Title = new JLabel("Obstacles - Robots Locations");
@@ -243,6 +540,10 @@ public class MainGUI{
         JLabel CCvariation = new JLabel("Connected Component: ");
         JLabel RandomLevelLabel = new JLabel("%Random Influence: ");
 
+        Importance.setBackground(Color.white);
+        Importance.setText("Importance");
+
+
         startExp = new JButton(run_Default);
         startExp.addActionListener(new StartDARP());
         startExp.addMouseListener(new RunButton());
@@ -267,6 +568,7 @@ public class MainGUI{
         DARP.add(textBoxCCvariation);
         DARP.add(RandomLevelLabel);
         DARP.add(textBoxRandomLevel);
+        DARP.add(Importance);
         DARP.add(startExp);
         DARP.add(AbortDARP);
         DARP.setBorder(BorderFactory.createTitledBorder("Find the coverage paths"));
@@ -298,7 +600,7 @@ public class MainGUI{
         ReturnButton.addActionListener(new ReturnToTheInitialGUI());
 
 
-        JButton SoftReturnButton = new JButton("Edit the current configuration");
+        JButton SoftReturnButton = new JButton("Edit this set-up");
         SoftReturnButton.addActionListener(new SoftReturnAction());
 
         JPanel RadioAreaButtons = new JPanel();
@@ -332,6 +634,9 @@ public class MainGUI{
         RepaintDARP.addActionListener(new RepaintDARPclasss());
         RepaintDARP.setEnabled(true);
 
+        JButton SaveButton = new JButton("Save");
+        SaveButton.addActionListener(new SaveL());
+
         checkBoxMSTs = new JCheckBox("Display MSTs");
         //checkBoxMSTs.addActionListener(new CheckBoxActionClass());
         //checkBoxMSTs.setEnabled(true);
@@ -342,6 +647,7 @@ public class MainGUI{
         SuperRadio.setBackground(Color.WHITE);
         SuperRadio.add(RadioAreaButtons);
         SuperRadio.add(RepaintDARP);
+        SuperRadio.add(SaveButton);
         //SuperRadio.add(checkBoxMSTs);
         SuperRadio.setBorder(BorderFactory.createTitledBorder("Display Options"));
 
@@ -370,6 +676,81 @@ public class MainGUI{
         UserInputPanel.add(statsLabel);
         UserInputPanel.add(superStats);
 
+    }
+
+
+    class SaveL implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            FileFilter imageFilter = new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes());
+            saveAS.setFileFilter(imageFilter);
+            // Demonstrate "Save" dialog:
+            switch(CurrentCompDisp) {
+                case 0:
+                    saveAS.setSelectedFile(new File("Input.png"));
+                    break;
+                case 1:
+                    saveAS.setSelectedFile(new File("DARP.png"));
+                    break;
+                case 2:
+                    saveAS.setSelectedFile(new File("Coverage_Paths.png"));
+                    break;
+                default:
+                    saveAS.setSelectedFile(new File("output.png"));
+            }
+
+            int rVal = saveAS.showSaveDialog(mainFrame);
+            if (rVal == JFileChooser.APPROVE_OPTION) {
+
+                Component content = mainFrame.getContentPane().getComponent(1);
+                BufferedImage img = new BufferedImage(content.getWidth(), content.getHeight(), BufferedImage.TYPE_INT_RGB);
+                Graphics2D g2d = img.createGraphics();
+                content.printAll(g2d);
+                g2d.dispose();
+                String FileName = saveAS.getSelectedFile().getName();
+
+                try {
+
+                    String extension="", imageType="png";
+                    if(FileName.contains(".")) {
+                        extension = FileName.substring(FileName.lastIndexOf("."));
+                        FileName = FileName.substring(0, FileName.indexOf('.'));
+                    }
+
+                    switch(extension)
+                    {
+                        case ".png":
+                            imageType="png";
+                            FileName+=".png";
+                            break;
+                        case ".gif":
+                            imageType="gif";
+                            FileName+=".gif";
+                            break;
+                        case ".tiff":
+                            imageType="tiff";
+                            FileName+=".tiff";
+                            break;
+                        case ".jpg":
+                            imageType="jpg";
+                            FileName+=".jpg";
+                            break;
+                        case ".jpeg":
+                            imageType="jpeg";
+                            FileName+=".jpeg";
+                            break;
+                        default:
+                            FileName+=".png";
+                            break;
+                    }
+
+                    ImageIO.write(img, imageType, new File(saveAS.getCurrentDirectory().toString()+System.getProperty("file.separator")+FileName));
+                } catch (Exception ex) {
+                    appendToPane("[ERROR] A problem encountered while saving the image\n\n", Color.WHITE);
+                    return;
+                }
+                appendToPane("The image has been successfully saved at "+saveAS.getCurrentDirectory().toString()+System.getProperty("file.separator")+FileName+"\n\n", Color.WHITE);
+            }
+        }
     }
 
 
@@ -432,6 +813,7 @@ public class MainGUI{
 
 
             if (n == 0) {
+                System.gc();
                 mainFrame.remove(ColorGrid);
                 EnvironmentGrid = new int[rows][cols];
                 ColorGrid = new GridPane();
@@ -484,6 +866,7 @@ public class MainGUI{
                     options[1]); //default button title
 
             if (n == 0) {
+                System.gc();
                 UserInputPanel.removeAll();
                 EnvironmentGrid = null;
                 CurrColor = Color.MAGENTA;
@@ -508,10 +891,10 @@ public class MainGUI{
 
     private class SoftReturnAction implements ActionListener{
         public void actionPerformed(ActionEvent event){
-            Object[] options = {"Yes, make the grid editable again", "Cancel"};
+            Object[] options = {"Yes, continue", "Cancel"};
 
             int n = JOptionPane.showOptionDialog(mainFrame,
-                    "The calculated paths are going to be discarded" +
+                    "The calculated paths are going to be discarded and grid will be editable again" +
                             "\n Do you really want to continue?",
                     "WARNING",
                     JOptionPane.YES_NO_OPTION,
@@ -521,6 +904,7 @@ public class MainGUI{
                     options[1]); //default button title
 
             if (n == 0) {
+                System.gc();
                 retainData=true;
                 ColorGrid.enable =true;
                 mainFrame.remove(DarpResult);
@@ -725,7 +1109,7 @@ public class MainGUI{
             int dcells = Integer.parseInt(textBoxMaxDiscr.getText());
 
 
-            DARP problem = new DARP(rows, cols, EnvironmentGrid, MaxIter,CCvariation, randomLevel,dcells);
+            DARP problem = new DARP(rows, cols, EnvironmentGrid, MaxIter,CCvariation, randomLevel,dcells, Importance.isSelected());
 
             if (problem.getNr()<=0) {
                 appendToPane("Please define at least one robot (blue cell)\n\n", Color.WHITE);
@@ -776,7 +1160,7 @@ public class MainGUI{
                 p = null;
                 appendToPane("DARP execution was successfully terminated\n\n", Color.WHITE);
 
-
+                System.gc();
                 enableComponents(UserInputPanel,true);
                 ColorGrid.enable = true;
                 AbortDARP.setVisible(false);
@@ -791,7 +1175,12 @@ public class MainGUI{
 
             if (p.getSuccess()){
                 int [][] A = p.getAssignmentMatrix();
-                appendToPane("DARP found an optimal space division\n\n", Color.WHITE);
+                if (p.getAchievedDiscr() <2){
+                    appendToPane("DARP found an optimal space division\n\n", Color.WHITE);
+                }
+                else{
+                    appendToPane("DARP found a space division within the acceptable bounds\n\n", Color.WHITE);
+                }
 
                 ColorsNr = new Color[nr];
                 for (int r=0;r<nr;r++){ColorsNr[r]=generateRandomColor(null);}
@@ -826,12 +1215,17 @@ public class MainGUI{
                 mainFrame.getContentPane().add(BorderLayout.CENTER,mCPPResult);
                 mainFrame.setVisible(true);
                 mainFrame.repaint();
+                System.gc();
             }else {
                 appendToPane("The algorithm after "+4*p.getDiscr()+"x"+p.getMaxIter()+" iterations wasn't able " +
                         "to find a valid cells division with at most "+4*p.getDiscr()+" discrepancy " +
                         "among the robots paths\n\n", Color.WHITE);
+                System.gc();
                 enableComponents(UserInputPanel,true);
                 ColorGrid.enable = true;
+                AbortDARP.setVisible(false);
+                startExp.setVisible(true);
+                startExp.setEnabled(true);
                 appendToPane("Interface released\n\n", Color.WHITE);
             }
         }
@@ -940,7 +1334,7 @@ public class MainGUI{
             this.AllRealPaths =AllRealPaths;
             this.dispMST = disp;
             this.KruskalMSTS = MSTS;
-            this.SizeToPaintBorder = 4;
+            this.SizeToPaintBorder =  (int) Math.ceil(1/(Math.max(rows,cols)/104.0));
             this.gpVertical = new GradientPaint(5, 5, primaryColor, 10, 5, secondaryColor, true);
         }
 
@@ -1034,7 +1428,7 @@ public class MainGUI{
                             //pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
                             pan.setBackground(Color.WHITE);
                             if (dispMST) {paintBorders(pan, BorderToPaint[i][j], ColorsNr[Assign[i/2][j/2]]);}
-                            else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
+                            //else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
 
                             pan.revalidate();
                             pan.repaint();
@@ -1048,11 +1442,10 @@ public class MainGUI{
                             } else {
                                 pan.setBackground(Color.WHITE);
                                 if (dispMST) {paintBorders(pan, BorderToPaint[i][j], ColorsNr[Assign[i/2][j/2]]);}
-                                else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
+                                //else {pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));}
 
                                 //pan.add(new DrawADashedLine(ColorsNr[Assign[i/2][j/2]],TypesOfLines[i][j]));
                                 paintBordersForPaths(pan,TypesOfLines[i][j], ColorsNr[Assign[i/2][j/2]]);
-
                             }
                             //pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
                             pan.revalidate();
@@ -1068,16 +1461,18 @@ public class MainGUI{
                     }
                     else if (i ==RealRows){
                         JPanel pan = new JPanel();
-                        pan.add(new ScalingLabel(Integer.toString(j)));
-                        pan.revalidate();
-                        pan.repaint();
+                        JLabel axisLabel = new JLabel(Integer.toString(j));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/(2*cols))));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(j)));
                         add(pan);
                     }
                     else if (j < 0){
                         JPanel pan = new JPanel();
-                        pan.add(new ScalingLabel(Integer.toString(i)));
-                        pan.revalidate();
-                        pan.repaint();
+                        JLabel axisLabel = new JLabel(Integer.toString(i));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/(2*rows))));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(i)));
                         add(pan);
                     }
                 }
@@ -1097,18 +1492,27 @@ public class MainGUI{
                 subJPanelsList.get(i).setBorder(BorderFactory.createLineBorder(Color.WHITE));
             }
 
-            switch (LinesToAdd[0]) {
-                case 1: subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, c)); break; //up
-                case 2:  subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, c));break; //left
-                case 3:  subJPanelsList.get(3).setBorder(BorderFactory.createMatteBorder(SizeToPaintBorder, 0, 0, 0, c)); break; //right
-                case 4:  subJPanelsList.get(3).setBorder(BorderFactory.createMatteBorder(0, SizeToPaintBorder, 0, 0, c));break; //down
+            switch (LinesToAdd[1]) {
+                case 1: subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, SizeToPaintBorder, 0, 0,
+                        new DashedLineIcon(c,  1, SizeToPaintBorder, 0, (int)Math.ceil(SizeToPaintBorder/4)))); break; //up -new DashedLineIcon(c,  1, SizeToPaintBorder, 0, SizeToPaintBorder)
+                case 2:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(SizeToPaintBorder, 0, 0, 0,
+                        new DashedLineIcon(c, SizeToPaintBorder, 1, (int)Math.ceil(SizeToPaintBorder/4), 0)));break; //left -new DashedLineIcon(c, SizeToPaintBorder, 1, SizeToPaintBorder, 0)
+                case 3:  subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0,
+                        new DashedLineIcon(c, SizeToPaintBorder, 1, (int)Math.ceil(SizeToPaintBorder/4), 0))); break; //right - new DashedLineIcon(c, SizeToPaintBorder, 1, SizeToPaintBorder, 0)
+                case 4:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder,
+                        new DashedLineIcon(c,  1, SizeToPaintBorder, 0, (int)Math.ceil(SizeToPaintBorder/4))));break; //down -new DashedLineIcon(c,  1, SizeToPaintBorder, 0, SizeToPaintBorder)
             }
 
-            switch (LinesToAdd[1]) {
-                case 1: subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, SizeToPaintBorder, 0, 0, c)); break; //up
-                case 2:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(SizeToPaintBorder, 0, 0, 0, c));break; //left
-                case 3:  subJPanelsList.get(1).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0, c)); break; //right
-                case 4:  subJPanelsList.get(2).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder, c));break; //down
+
+            switch (LinesToAdd[0]) {
+                case 1: subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, 0, SizeToPaintBorder,
+                        new DashedLineIcon(c,  1, SizeToPaintBorder, 0, (int)Math.ceil(SizeToPaintBorder/4)))); break; //up -new DashedLineIcon(c,  1, SizeToPaintBorder, 0, SizeToPaintBorder)
+                case 2:  subJPanelsList.get(0).setBorder(BorderFactory.createMatteBorder(0, 0, SizeToPaintBorder, 0,
+                        new DashedLineIcon(c, SizeToPaintBorder, 1, (int)Math.ceil(SizeToPaintBorder/4), 0)));break; //left - new DashedLineIcon(c, SizeToPaintBorder, 1, SizeToPaintBorder, 0)
+                case 3:  subJPanelsList.get(3).setBorder(BorderFactory.createMatteBorder(SizeToPaintBorder, 0, 0, 0,
+                        new DashedLineIcon(c, SizeToPaintBorder, 1, (int)Math.ceil(SizeToPaintBorder/4), 0))); break; //right -new DashedLineIcon(c, SizeToPaintBorder, 1, SizeToPaintBorder, 0)
+                case 4:  subJPanelsList.get(3).setBorder(BorderFactory.createMatteBorder(0, SizeToPaintBorder, 0, 0,
+                        new DashedLineIcon(c,  1, SizeToPaintBorder, 0, (int)Math.ceil(SizeToPaintBorder/4))));break; //down -new DashedLineIcon(c,  1, SizeToPaintBorder, 0, SizeToPaintBorder)
             }
 
             for (int i=0;i<4;i++){pan.add(subJPanelsList.get(i));}
@@ -1133,8 +1537,43 @@ public class MainGUI{
             }
         }
 
-
     }
+
+
+    static public class DashedLineIcon implements Icon
+    {
+        private Color color;
+        private int dashWidth;
+        private int dashHeight;
+        private int emptyWidth;
+        private int emptyHeight;
+
+        public DashedLineIcon(Color color, int dashWidth, int dashHeight, int emptyWidth, int emptyHeight )
+        {
+            this.color = color;
+            this.dashWidth = dashWidth;
+            this.dashHeight = dashHeight;
+            this.emptyWidth = emptyWidth;
+            this.emptyHeight = emptyHeight;
+        }
+
+        public int getIconWidth()
+        {
+            return dashWidth + emptyWidth;
+        }
+
+        public int getIconHeight()
+        {
+            return dashHeight + emptyHeight;
+        }
+
+        public void paintIcon(Component c, Graphics g, int x, int y)
+        {
+            g.setColor(color);
+            g.fillRect(x, y, dashWidth, dashHeight);
+        }
+    }
+
 
 
 
@@ -1170,7 +1609,7 @@ public class MainGUI{
                             RobotCell pan = new RobotCell();//(Color.WHITE,ColorsNr[Assign[i][j]]);
                             pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
                             pan.setBackground(ColorsNr[Assign[i][j]]);
-                            pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                            //pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
                             pan.revalidate();
                             pan.repaint();
                             add(pan);
@@ -1183,7 +1622,7 @@ public class MainGUI{
                                 pan.setBackground(ColorsNr[Assign[i][j]]);
                             }
                             pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
-                            pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                            //pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
                             pan.revalidate();
                             pan.repaint();
                             add(pan);
@@ -1191,22 +1630,22 @@ public class MainGUI{
                     }
                     else if (i ==rows && j < 0) {
                         JPanel pan = new JPanel();
-                        pan.revalidate();
-                        pan.repaint();
                         add(pan);
                     }
                     else if (i ==rows){
                         JPanel pan = new JPanel();
-                        pan.add(new ScalingLabel(Integer.toString(j)));
-                        pan.revalidate();
-                        pan.repaint();
+                        JLabel axisLabel = new JLabel(Integer.toString(j));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/cols)));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(j)));
                         add(pan);
                     }
                     else if (j < 0){
                         JPanel pan = new JPanel();
-                        pan.add(new ScalingLabel(Integer.toString(i)));
-                        pan.revalidate();
-                        pan.repaint();
+                        JLabel axisLabel = new JLabel(Integer.toString(i));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/rows)));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(i)));
                         add(pan);
                     }
                 }
@@ -1232,6 +1671,7 @@ public class MainGUI{
 
                     pan.setEnabled(true);
                     pan.setBackground(Color.WHITE);
+
                     pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
                     if (i < rows && j >= 0) {
                         pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
@@ -1239,12 +1679,70 @@ public class MainGUI{
                         pan.setName(i + " " + j);
                     }
                     else if (i ==rows && j < 0) {pan.add(new JLabel(" "));}
-                    else if (i ==rows){pan.add(new ScalingLabel(Integer.toString(j)));}
-                    else if (j < 0){pan.add(new ScalingLabel(Integer.toString(i)));}
+                    else if (i ==rows){
+                        JLabel axisLabel = new JLabel(Integer.toString(j));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/cols)));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(j)));
+                    }
+                    else if (j < 0){
+                        JLabel axisLabel = new JLabel(Integer.toString(i));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/rows)));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(i)));
+                    }
 
                     add(pan);
                 }
             }
+
+
+            repaint();
+        }
+
+        GridPane(byte[][] image) {
+
+            setLayout(new GridLayout(rows+1, cols+1));
+            setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+
+            for (int i = 0; i < rows+1; i++) {
+                for (int j = -1; j < cols; j++) {
+                    JPanel pan = new JPanel();
+
+                    pan.setEnabled(true);
+                    pan.setBackground(Color.WHITE);
+                    pan.setPreferredSize(new Dimension(getWidth(), getHeight()));
+                    if (i < rows && j >= 0) {
+
+                        if (image[i][j]==0) {
+                            pan.setBackground(Color.WHITE);
+                            EnvironmentGrid[i][j]=0;
+                        }else{
+                            pan.setBackground(Color.BLACK);
+                            EnvironmentGrid[i][j]=1;
+                        }
+                        pan.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                        pan.addMouseListener(new BoxListener()); // add a mouse listener to make the panels clickable
+                        pan.setName(i + " " + j);
+                    }
+                    else if (i ==rows && j < 0) {pan.add(new JLabel(" "));}
+                    else if (i ==rows){
+                        JLabel axisLabel = new JLabel(Integer.toString(j));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/cols)));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(j)));
+                    }
+                    else if (j < 0){
+                        JLabel axisLabel = new JLabel(Integer.toString(i));
+                        axisLabel.setFont(new Font("serif", Font.BOLD, (axisScale/rows)));
+                        pan.add(axisLabel);
+                        //pan.add(new ScalingLabel(Integer.toString(i)));
+                    }
+
+                    add(pan);
+                }
+            }
+            repaint();
         }
     }
 
@@ -1291,8 +1789,8 @@ public class MainGUI{
         public void componentResized(ComponentEvent e) {
             Font font = getFont();
             FontMetrics metrics = getFontMetrics(font);
-            float size = font.getSize2D();
-            float textWidth = metrics.stringWidth(getText());
+            float size = font.getSize2D()/2;
+            float textWidth = metrics.stringWidth(getText())/2;
             size = (float) Math.floor((getWidth() / textWidth) * size);
             setFont(font.deriveFont(size));
         }
@@ -1422,10 +1920,10 @@ public class MainGUI{
             g2.setPaint(oldPaint);
 
         }
-
-
     }
 
-
+    public static void main(String[] arg){
+        new MainGUI();
+    }
 
 }

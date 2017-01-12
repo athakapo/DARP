@@ -24,9 +24,10 @@ public class DARP{
     private double elapsedTime;
     private int discr;
     private boolean canceled;
+    private boolean UseImportance;
 
 
-    public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel, int discr){
+    public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel, int discr, boolean imp){
         this.rows =r;
         this.cols = c;
         this.GridEnv = deepCopyMatrix(src);
@@ -40,6 +41,7 @@ public class DARP{
         this.randomLevel = rLevel;
         this.discr = discr;
         this.canceled = false;
+        this.UseImportance = imp;
         defineRobotsObstacles();
     }
 
@@ -85,25 +87,25 @@ public class DARP{
                     if (TilesImportance.get(r)[i][j] > MaximumImportance[r]) {MaximumImportance[r]=TilesImportance.get(r)[i][j];}
                     if (TilesImportance.get(r)[i][j] < MinimumImportance[r]) {MinimumImportance[r]=TilesImportance.get(r)[i][j];}
                 }
-
                 ONES2D[i][j]=1;
             }
         }
 
-
         success = false;
+
+
+
+
+        ArrayList<double[][]> MetricMatrix = deepCopyListMatrix(AllDistances);
+
+        double [][] criterionMatrix = new double[rows][cols];
 
         while(termThr<=discr && !success && !canceled){
             //Initializations
-
-            success = true;
             double downThres = ((double)NoTiles-(double)termThr*(nr-1))/(double)(NoTiles*nr);
             double upperThres = ((double)NoTiles+termThr)/(double)(NoTiles*nr);
 
-            ArrayList<double[][]> MetricMatrix = deepCopyListMatrix(AllDistances);
-
-            double [][] criterionMatrix = new double[rows][cols];
-
+            success = true;
             //Main optimization loop
             int iter = 0;
             while (iter <= maxIter && !canceled) {
@@ -135,11 +137,13 @@ public class DARP{
 
                     //Calculate the deviation from the the Optimal Assignment
                     plainErrors[r] = ArrayOfElements[r] / (double) effectiveSize;
+                    //System.out.print(ArrayOfElements[r]+ ", ");
                     //divFairError[r] = fairDivision - plainErrors[r];
                     if (plainErrors[r]<downThres) {divFairError[r] = downThres - plainErrors[r];}
                     else if (plainErrors[r]>upperThres) {divFairError[r] = upperThres - plainErrors[r];}
                 }
 
+                //System.out.print("Iteration: "+iter+", ");
 
                 //Exit conditions
                 if (isThisAGoalState(termThr)) {
@@ -160,7 +164,17 @@ public class DARP{
                 //Restore Fairness among the different partitions
                 for (int r = 0; r < nr; r++) {
                     if (totalNegPlainErrors != 0.0) {
-                        correctionMult[r] = 1 + Math.signum(-divFairError[r]) * (plainErrors[r] / totalNegPlainErrors) * (TotalNegPerc / 2);
+
+                        //correctionMult[r]=1.0 -(divFairError[r]/(TotalNegPerc*nr))*(totalNegPlainErrors/2.0);
+
+
+                        if (divFairError[r]<0.0) {
+                            correctionMult[r] = 1.0 + (plainErrors[r] / totalNegPlainErrors) * (TotalNegPerc / 2.0);
+                        }
+                        else {
+                            correctionMult[r] = 1.0 - (plainErrors[r] / totalNegPlainErrors) * (TotalNegPerc / 2.0);
+                        }
+
                         criterionMatrix = calculateCriterionMatrix(TilesImportance.get(r), MinimumImportance[r], MaximumImportance[r], correctionMult[r], (divFairError[r] < 0));
                     }
                     MetricMatrix.set(r, FinalUpdateOnMetricMatrix(criterionMatrix, generateRandomMatrix(), MetricMatrix.get(r), ConnectedMultiplierList.get(r)));
@@ -170,6 +184,7 @@ public class DARP{
             }
 
             if (iter>=maxIter) {
+                maxIter=maxIter/2;
                 success=false;
                 termThr++;
             }
@@ -225,8 +240,15 @@ public class DARP{
 
         for (int i=0;i<rows;i++){
             for (int j=0;j<cols;j++){
-                if (SmallerThan0) {retrunCriter[i][j] = (TilesImp[i][j] - minImp)*((corMult-1)/(maxImp-minImp))+1;}
-                else {retrunCriter[i][j] = (TilesImp[i][j] - minImp)*((1-corMult)/(maxImp-minImp))+corMult;}
+                if (UseImportance) {
+                    if (SmallerThan0) {
+                        retrunCriter[i][j] = (TilesImp[i][j] - minImp)*((corMult-1)/(maxImp-minImp))+1;
+                    } else {
+                        retrunCriter[i][j] = (TilesImp[i][j] - minImp)*((1-corMult)/(maxImp-minImp))+corMult;
+                    }
+                }else{
+                    retrunCriter[i][j] = corMult;
+                }
             }
         }
 
@@ -239,13 +261,24 @@ public class DARP{
         minCellsAss = Integer.MAX_VALUE;
 
 
-        for (int r=0;r<nr;r++){
-            if (maxCellsAss < ArrayOfElements[r]) {maxCellsAss = ArrayOfElements[r];}
-            if (minCellsAss > ArrayOfElements[r]) {minCellsAss = ArrayOfElements[r];}
+        for (int r=0;r<nr;r++) {
+            if (maxCellsAss < ArrayOfElements[r]) {
+                maxCellsAss = ArrayOfElements[r];
+            }
+            if (minCellsAss > ArrayOfElements[r]) {
+                minCellsAss = ArrayOfElements[r];
+            }
 
+            if (!ConnectedRobotRegions[r]) {return false;}
+        }
+
+        /*
+        System.out.println("Discrepancey: "+(maxCellsAss-minCellsAss)+"("+thres+")");
+        for (int r=0;r<nr;r++) {
             if (!ConnectedRobotRegions[r]) {return false;}
 
         }
+        */
 
 
         return (maxCellsAss-minCellsAss)<=thres;
@@ -447,6 +480,7 @@ public class DARP{
     public int getDiscr(){return discr;}
     public int getMaxIter() {return  maxIter;}
     public void setCanceled(boolean c) {this.canceled=c;}
+    public int getAchievedDiscr() {return maxCellsAss-minCellsAss;}
 
 
 }
