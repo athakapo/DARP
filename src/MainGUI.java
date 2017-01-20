@@ -986,9 +986,15 @@ public class MainGUI{
                     && !textboxCols.getText().equals("0")) {
                 rows = Integer.parseInt(textboxRows.getText());
                 cols = Integer.parseInt(textboxCols.getText());
-                appendToPane("The grid [" + rows+","+cols+"] has been created\n\n",Color.WHITE);
-                appendToPane("Define the Robots initial positions along with the fixed obstacles\n\n",Color.WHITE);
-                DefineRobotsObstacles();
+                if (rows <=50 && cols<=50) {
+                    appendToPane("The grid [" + rows + "," + cols + "] has been created\n\n", Color.WHITE);
+                    appendToPane("Define the Robots initial positions along with the fixed obstacles\n\n", Color.WHITE);
+                    DefineRobotsObstacles();
+                }else{
+                    if (rows>50){textboxRows.setText("50");}
+                    if (cols>50){textboxCols.setText("50");}
+                    appendToPane("The maximum dimension is 50\n\n",Color.WHITE);
+                }
             }
             else {appendToPane("Please insert positive integer values\n\n",Color.WHITE);}
 
@@ -1099,7 +1105,7 @@ public class MainGUI{
             ConnectComponent G2G = new ConnectComponent();
             G2G.compactLabeling(BinaryGrid,new Dimension(cols, rows), true);
             if (G2G.getMaxLabel() > 1){
-                appendToPane("The environment gird MUST not have unreachable and/or closed shape regions\n\n", Color.WHITE);
+                appendToPane("The environment grid MUST not have unreachable and/or closed shape regions\n\n", Color.WHITE);
                 return;
             }
 
