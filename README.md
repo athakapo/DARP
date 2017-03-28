@@ -12,9 +12,12 @@ DARP algorithm divides the terrain into a number of equal areas each correspondi
 
 [Full Text](http://kapoutsis.info/wp-content/uploads/2017/02/j3.pdf)
 
-[Publisher Site] (https://link.springer.com/article/10.1007%2Fs10846-016-0461-x)
+[Publisher Site](https://link.springer.com/article/10.1007%2Fs10846-016-0461-x)
 
 cite as: 
+
+```
+#!python
 @article{Kapoutsis2017,
 title={DARP: Divide Areas Algorithm for Optimal Multi-Robot Coverage Path Planning},
 author={Kapoutsis, Athanasios Ch and Chatzichristofis, Savvas A and Kosmatopoulos, Elias B},
@@ -23,3 +26,4 @@ pages={1--18},
 year={2017},
 publisher={Springer}
 }
+```
