@@ -5,7 +5,6 @@ This project deals with the path planning problem of a team of mobile robots, in
 DARP algorithm divides the terrain into a number of equal areas each corresponding to a specific robot, so as to guarantee complete coverage, non-backtracking solution, minimum coverage path, while at the same time does not need any preparatory stage.
 
 ![Screenshot_2.png](https://bitbucket.org/repo/EjB6Mn/images/3227076872-Screenshot_2.png)
-![Screenshot_3.png](https://bitbucket.org/repo/EjB6Mn/images/2147054486-Screenshot_3.png)
 ![Screenshot_1.png](https://bitbucket.org/repo/EjB6Mn/images/3406347700-Screenshot_1.png)
 
 [Video demonstration](https://www.youtube.com/watch?v=LrGfvma41Ak)
