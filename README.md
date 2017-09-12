@@ -17,7 +17,6 @@ Example:
 cite as: 
 
 ```
-#!python
 @article{kapoutsisdarp,
   title={DARP: Divide Areas Algorithm for Optimal Multi-Robot Coverage Path Planning},
   author={Kapoutsis, Athanasios Ch and Chatzichristofis, Savvas A and Kosmatopoulos, Elias B},
