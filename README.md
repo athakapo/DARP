@@ -17,11 +17,10 @@ Example:
 cite as: 
 
 ```
-@article{kapoutsisdarp,
-  title={DARP: Divide Areas Algorithm for Optimal Multi-Robot Coverage Path Planning},
-  author={Kapoutsis, Athanasios Ch and Chatzichristofis, Savvas A and Kosmatopoulos, Elias B},
-  journal={Journal of Intelligent \& Robotic Systems},
-  pages={1--18},
-  publisher={Springer}
+@article{Koutras2021MarsExplorer,
+  title={MarsExplorer: Exploration of Unknown Terrains via Deep Reinforcement Learning and Procedurally Generated Environments},
+  author={Dimitrios I. Koutras and A. C. Kapoutsis and A. Amanatiadis and E. Kosmatopoulos},
+  journal = {arXiv preprint arXiv:2107.09996},
+  year={2021}
 }
 ```
