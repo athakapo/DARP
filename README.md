@@ -14,6 +14,8 @@ Example:
 
 [Publisher Site](https://link.springer.com/article/10.1007%2Fs10846-016-0461-x)
 
+Medium: [article](https://medium.com/@athanasios.kapoutsis/darp-divide-areas-algorithm-for-optimal-multi-robot-coverage-path-planning-2fed77b990a3)
+
 Python sibling: [github](https://github.com/alice-st/DARP-Python)
 
 cite as: 
