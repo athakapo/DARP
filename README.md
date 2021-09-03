@@ -4,8 +4,6 @@ This project deals with the path planning problem of a team of mobile robots, in
 
 DARP algorithm divides the terrain into a number of equal areas each corresponding to a specific robot, so as to guarantee complete coverage, non-backtracking solution, minimum coverage path, while at the same time does not need any preparatory stage.
 
-[Python support](https://github.com/alice-st/DARP-Python)
-
 Example:
 ![Screenshot_2.png](http://kapoutsis.info/wp-content/uploads/2019/02/3227076872-Screenshot_2.png)
 ![Screenshot_1.png](http://kapoutsis.info/wp-content/uploads/2019/02/3406347700-Screenshot_1.png)
@@ -15,6 +13,8 @@ Example:
 [Full Text](http://kapoutsis.info/wp-content/uploads/2017/02/j3.pdf)
 
 [Publisher Site](https://link.springer.com/article/10.1007%2Fs10846-016-0461-x)
+
+Python sibling: [github](https://github.com/alice-st/DARP-Python)
 
 cite as: 
 
