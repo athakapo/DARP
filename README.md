@@ -16,7 +16,7 @@ Example:
 
 Medium: [article](https://medium.com/@athanasios.kapoutsis/darp-divide-areas-algorithm-for-optimal-multi-robot-coverage-path-planning-2fed77b990a3)
 
-Python sibling: [github](https://github.com/alice-st/DARP)
+Python twin: [github](https://github.com/alice-st/DARP)
 
 cite as: 
 
