@@ -20,7 +20,7 @@ Medium: [article](https://medium.com/@athanasios.kapoutsis/darp-divide-areas-alg
 
 Python twin: [github](https://github.com/alice-st/DARP)
 
-Optimized extention (Java) to support WGS84 definitions: [github](https://github.com/savvas-ap/mCPP-optimized-DARP)
+Optimized extension (Java) to support WGS84 definitions: [github](https://github.com/savvas-ap/mCPP-optimized-DARP)
 
 ## Cite as: 
 
