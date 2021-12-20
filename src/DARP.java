@@ -25,6 +25,7 @@ public class DARP{
     private int discr;
     private boolean canceled;
     private boolean UseImportance;
+    private int overall_iter;
 
 
     public DARP(int r,int c, int[][] src, int iters, double vWeight, double rLevel, int discr, boolean imp){
@@ -99,6 +100,8 @@ public class DARP{
         ArrayList<double[][]> MetricMatrix = deepCopyListMatrix(AllDistances);
 
         double [][] criterionMatrix = new double[rows][cols];
+
+        overall_iter = 0;
 
         while(termThr<=discr && !success && !canceled){
             //Initializations
@@ -181,6 +184,7 @@ public class DARP{
                 }
 
                 iter++;
+                overall_iter++;
             }
 
             if (iter>=maxIter) {
@@ -481,6 +485,7 @@ public class DARP{
     public int getMaxIter() {return  maxIter;}
     public void setCanceled(boolean c) {this.canceled=c;}
     public int getAchievedDiscr() {return maxCellsAss-minCellsAss;}
+    public int getOverall_iter() {return overall_iter;}
 
 
 }
