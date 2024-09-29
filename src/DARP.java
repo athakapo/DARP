@@ -12,6 +12,7 @@ public class DARP{
     private double variateWeight, randomLevel;
     private int rows,cols,nr,ob,maxIter ;
     private int[][] GridEnv;
+    private int[][] GridEnvDistances;
     private ArrayList<Integer[]> RobotsInit;
     private ArrayList<int[][]> BWlist;
     private int[][] A;
@@ -31,6 +32,7 @@ public class DARP{
         this.rows =r;
         this.cols = c;
         this.GridEnv = deepCopyMatrix(src);
+        this.GridEnvDistances = deepCopyMatrix(src);
         this.nr=0;
         this.ob=0;
         this.maxIter = iters;
@@ -72,13 +74,18 @@ public class DARP{
         MinimumImportance = new double[nr];
         for (int r=0;r<nr;r++){MinimumImportance[r] = Double.MAX_VALUE;}
 
+
+        for (int r=0;r<nr;r++){
+            AllDistances.set(r, BFS.bfs(GridEnvDistances, RobotsInit.get(r)[0], RobotsInit.get(r)[1]));
+        }
+
         float [][] ONES2D = new float[rows][cols];
 
         for(int i=0;i<rows;i++){
             for (int j=0;j<cols;j++) {
                 double tempSum=0.0;
                 for (int r=0;r<nr;r++){
-                    AllDistances.get(r)[i][j] = EuclideanDis(RobotsInit.get(r), new Integer[]{i,j});
+                    //AllDistances.get(r)[i][j] = EuclideanDis(RobotsInit.get(r), new Integer[]{i,j});
                     if (AllDistances.get(r)[i][j] > MaximumDist[r]) {MaximumDist[r]=AllDistances.get(r)[i][j];}
                     tempSum+=AllDistances.get(r)[i][j];
                 }
@@ -135,7 +142,7 @@ public class DARP{
                     }
                     ConnectedMultiplierList.add(r, ConnectedMultiplier);
 
-                    //Calculate the deviation from the the Optimal Assignment
+                    //Calculate the deviation from the Optimal Assignment
                     plainErrors[r] = ArrayOfElements[r] / (double) effectiveSize;
                     //System.out.print(ArrayOfElements[r]+ ", ");
                     //divFairError[r] = fairDivision - plainErrors[r];
@@ -411,6 +418,7 @@ public class DARP{
         for(int i=0;i<rows;i++){
             for (int j=0;j<cols;j++){
                 if (GridEnv[i][j]==2) {
+                    GridEnvDistances[i][j] = 0;
                     robotBinary[i][j] = true;
                     RobotsInit.add(new Integer[]{i,j});
                     GridEnv[i][j]=nr;
@@ -418,9 +426,13 @@ public class DARP{
                     nr++;
                 }
                 else if (GridEnv[i][j]==1) {
+                    GridEnvDistances[i][j] = 1;
                     ob++;
                     GridEnv[i][j]=-2;
-                } else {GridEnv[i][j]=-1;}
+                } else {
+                    GridEnvDistances[i][j] = 0;
+                    GridEnv[i][j]=-1;
+                }
             }
         }
 
